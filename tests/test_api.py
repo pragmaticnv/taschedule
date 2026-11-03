@@ -108,3 +108,50 @@ def test_api_json_create_and_complete(client):
     comp_data = res_comp.json()
     assert comp_data["success"] is True
 
+
+def test_api_json_update_and_delete(client):
+    now = datetime.now(timezone.utc)
+    # Create task
+    res_create = client.post("/api/tasks", json={
+        "task_id": "TSK-EDIT-TEST",
+        "title": "Initial Title",
+        "deadline": (now + timedelta(days=2)).isoformat(),
+        "priority": 3,
+        "estimated_minutes": 45,
+    })
+    assert res_create.status_code == 200
+
+    # Update task
+    res_up = client.put("/api/tasks/TSK-EDIT-TEST", json={
+        "title": "Updated Title After Sift",
+        "priority": 5,
+        "estimated_minutes": 60,
+    })
+    assert res_up.status_code == 200
+    assert res_up.json()["task"]["title"] == "Updated Title After Sift"
+    assert res_up.json()["task"]["priority"] == 5
+
+    # Delete task
+    res_del = client.delete("/api/tasks/TSK-EDIT-TEST")
+    assert res_del.status_code == 200
+    assert res_del.json()["success"] is True
+    assert repo.get_task("TSK-EDIT-TEST") is None
+
+
+def test_api_json_settings_and_demo(client):
+    # Change policy to priority_first
+    res_pol = client.post("/api/settings", json={"ordering_policy": "priority_first", "work_window_minutes": 240})
+    assert res_pol.status_code == 200
+    assert res_pol.json()["policy"] == "priority_first"
+
+    # Reset demo
+    res_rst = client.post("/api/demo/reset")
+    assert res_rst.status_code == 200
+    assert len(repo.get_all_tasks()) == 0
+
+    # Seed demo
+    res_seed = client.post("/api/demo/seed")
+    assert res_seed.status_code == 200
+    assert res_seed.json()["count"] > 0
+    assert len(repo.get_all_tasks()) > 0
+

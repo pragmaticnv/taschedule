@@ -1000,3 +1000,110 @@ body::before {
   }
 }
 
+
+/* Deadline Pressure Rail (Glassmorphic) */
+.glass-rail-container {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 6px 2px 14px;
+  margin-bottom: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+}
+
+.glass-rail-item {
+  flex: 0 0 220px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.glass-rail-item:hover {
+  background: rgba(23, 33, 58, 0.8);
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.rail-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.rail-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 8px;
+}
+
+.rail-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* Heap Node Inspector & Tree Highlights */
+.tree-node-glass.selected {
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.6) !important;
+  transform: scale(1.08);
+}
+
+.tree-node-glass.parent-highlight {
+  border-color: var(--accent-amber) !important;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.5) !important;
+}
+
+.tree-node-glass.child-highlight {
+  border-color: var(--accent-violet) !important;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+}
+
+.node-inspector-card {
+  margin-top: 18px;
+  padding: 18px 22px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inspector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.inspector-cell {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* Edit action icon buttons */
+.item-action-btn.edit:hover {
+  color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.15);
+}

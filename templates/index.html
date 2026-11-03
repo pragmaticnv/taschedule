@@ -53,6 +53,21 @@
         </div>
       </div>
 
+      <!-- DEADLINE PRESSURE RAIL (Upcoming Chronological Timeline) -->
+      <div id="deadline-rail-wrapper">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; font-weight: 700;">
+            ⏳ Deadline Pressure Rail
+          </span>
+          <span id="rail-counter" style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);">
+            0 active milestones
+          </span>
+        </div>
+        <div class="glass-rail-container" id="deadline-rail-container">
+          <!-- Dynamically populated rail items -->
+        </div>
+      </div>
+
       <!-- ================= TAB 1: WORKBENCH (ONE PAGE ADD & LIST) ================= -->
       <div id="view-workbench">
 
@@ -107,8 +122,9 @@
             <div class="filter-pill-strip">
               <input type="text" id="task-search-input" class="search-input-glass" placeholder="🔍 Search tasks..." oninput="filterTasks()">
               <button class="filter-chip active" id="filter-all" onclick="setTaskFilter('all')">All</button>
-              <button class="filter-chip" id="filter-critical" onclick="setTaskFilter('critical')">🔥 Critical</button>
+              <button class="filter-chip" id="filter-critical" onclick="setTaskFilter('critical')">🔥 Critical (P4-P5)</button>
               <button class="filter-chip" id="filter-overdue" onclick="setTaskFilter('overdue')">⏳ Overdue</button>
+              <button class="filter-chip" id="filter-due-soon" onclick="setTaskFilter('due_soon')">⚡ Due Soon (&lt;24h)</button>
               <button class="filter-chip" id="filter-completed" onclick="setTaskFilter('completed')">✅ Completed</button>
             </div>
           </div>
@@ -127,17 +143,46 @@
             <div>
               <h2 style="font-size: 24px; font-weight: 800;">🧬 Binary Min-Heap Visualizer</h2>
               <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
-                Complete tree hierarchy and memory array buffer. Every node strictly maintains <code>Key(Parent) &le; Key(Child)</code>.
+                Complete tree hierarchy and memory array buffer. Click any node to inspect parent/child arithmetic.
               </p>
             </div>
             <div id="heap-invariant-badge" class="capacity-chip ok">
-              Invariant: SATISFIED
+              Invariant: SATISFIED (O(log n))
             </div>
           </div>
 
           <!-- Interactive Tree Graph -->
           <div class="heap-tree-container" id="tree-visualizer-container">
             <!-- Tree levels dynamically generated -->
+          </div>
+
+          <!-- Node Inspector Card (Appears on click) -->
+          <div id="node-inspector-box" class="node-inspector-card" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; color: var(--accent-cyan); font-size: 13px;">
+                🔍 Node Inspector: Index [<span id="insp-index">0</span>] &bull; <span id="insp-title">Title</span>
+              </span>
+              <button class="item-action-btn" onclick="closeInspector()">&times; Close</button>
+            </div>
+
+            <div class="inspector-grid">
+              <div class="inspector-cell">
+                <span style="color: var(--accent-amber); font-weight: 700;">Parent:</span> <span id="insp-parent">None</span><br>
+                <span style="color: var(--text-dim);">Formula: &lfloor;(i-1)/2&rfloor;</span>
+              </div>
+              <div class="inspector-cell">
+                <span style="color: var(--accent-violet); font-weight: 700;">Left Child:</span> <span id="insp-left">None</span><br>
+                <span style="color: var(--text-dim);">Formula: 2i + 1</span>
+              </div>
+              <div class="inspector-cell">
+                <span style="color: var(--accent-violet); font-weight: 700;">Right Child:</span> <span id="insp-right">None</span><br>
+                <span style="color: var(--text-dim);">Formula: 2i + 2</span>
+              </div>
+              <div class="inspector-cell">
+                <span style="color: var(--accent-emerald); font-weight: 700;">Min-Heap Invariant:</span><br>
+                <span id="insp-inv-status" style="color: #FFF;">Key(P) &le; Key(Node)</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -175,7 +220,7 @@
           <div class="form-stack">
             <div>
               <label class="form-label-glass">Active Ordering Policy</label>
-              <div style="display: flex; gap: 12px; margin-top: 8px;">
+              <div style="display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap;">
                 <button type="button" class="preset-chip active" id="btn-policy-edf" onclick="setPolicy('earliest_deadline')">
                   ⏱️ Earliest Deadline First (EDF)
                 </button>
@@ -193,7 +238,7 @@
               </p>
             </div>
 
-            <div style="padding-top: 18px; border-top: 1px solid var(--glass-border); display: flex; gap: 12px;">
+            <div style="padding-top: 18px; border-top: 1px solid var(--glass-border); display: flex; gap: 12px; flex-wrap: wrap;">
               <button class="hero-complete-btn" style="background: linear-gradient(135deg, #6366F1, #EC4899);" onclick="seedDemoTasks()">
                 ↺ Seed Academic Demo Tasks
               </button>
@@ -207,7 +252,7 @@
 
     </main>
 
-    <!-- POPOUT MODAL DRAWER (To Schedule & Add Tasks) -->
+    <!-- POPOUT MODAL DRAWER 1: SCHEDULE NEW TASK -->
     <div class="modal-overlay" id="schedule-modal" onclick="closeModalOnOverlay(event)">
       <div class="modal-card">
         <div class="modal-header">
@@ -276,6 +321,64 @@
       </div>
     </div>
 
+    <!-- POPOUT MODAL DRAWER 2: EDIT TASK -->
+    <div class="modal-overlay" id="edit-modal" onclick="closeEditModalOnOverlay(event)">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title">✏️ Edit Mission [<span id="edit-task-id-badge">TSK-000</span>]</div>
+          <button class="modal-close-btn" onclick="closeEditModal()">&times;</button>
+        </div>
+
+        <form id="edit-task-form" onsubmit="handleUpdateTask(event)">
+          <input type="hidden" id="edit-task-id">
+          <div class="form-stack">
+            <div>
+              <label class="form-label-glass">Mission Title *</label>
+              <input type="text" id="edit-title-input" class="form-input-glass" required>
+            </div>
+
+            <div>
+              <label class="form-label-glass">Deadline (UTC)</label>
+              <input type="datetime-local" id="edit-deadline-input" class="form-input-glass" required>
+            </div>
+
+            <div>
+              <label class="form-label-glass">Priority Level</label>
+              <select id="edit-priority-input" class="form-input-glass">
+                <option value="5">🔥 P5 — Critical Urgency</option>
+                <option value="4">⚡ P4 — High Priority</option>
+                <option value="3">🎯 P3 — Medium Priority</option>
+                <option value="2">🌱 P2 — Minor / Normal</option>
+                <option value="1">☕ P1 — Low / Backlog</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label-glass">Estimated Effort (Minutes)</label>
+              <input type="number" id="edit-duration-input" class="form-input-glass" min="5" step="5" required>
+            </div>
+
+            <div>
+              <label class="form-label-glass">Status</label>
+              <select id="edit-status-input" class="form-input-glass">
+                <option value="active">Active (In Heap Queue)</option>
+                <option value="completed">Completed (Archived)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label-glass">Notes &amp; Scope</label>
+              <textarea id="edit-notes-input" class="form-textarea-glass" rows="2"></textarea>
+            </div>
+
+            <button type="submit" class="modal-submit-btn">
+              Save Changes &amp; Rebuild Heap &rarr;
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Live Toast Message -->
     <div id="toast" class="toast-msg">
       <span id="toast-icon">✓</span>
@@ -316,6 +419,9 @@
         capChip.textContent = `✓ ${appState.capacity.total_estimated_minutes}m / ${appState.capacity.work_window_minutes}m Window`;
       }
 
+      // Render Deadline Pressure Rail
+      renderDeadlineRail(appState.deadline_rail);
+
       // Render Hero Next Up Task
       renderHero(appState.next_task, appState.explanation);
 
@@ -334,6 +440,43 @@
         document.getElementById('btn-policy-prio').classList.add('active');
       }
       document.getElementById('setting-work-window').value = appState.capacity.work_window_minutes;
+    }
+
+    function renderDeadlineRail(rail) {
+      const container = document.getElementById('deadline-rail-container');
+      const counter = document.getElementById('rail-counter');
+      container.innerHTML = '';
+
+      if (!rail || rail.length === 0) {
+        counter.textContent = '0 active milestones';
+        container.innerHTML = `<div style="color: var(--text-dim); font-size: 12px; padding: 10px 0;">No active tasks in deadline rail.</div>`;
+        return;
+      }
+
+      counter.textContent = `${rail.length} active milestones`;
+
+      rail.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'glass-rail-item';
+        div.onclick = () => {
+          document.getElementById('task-search-input').value = item.task_id;
+          filterTasks();
+        };
+
+        const isOverdue = item.urgency === 'overdue';
+        div.innerHTML = `
+          <div class="rail-top">
+            <span class="prio-pill prio-${item.priority}">P${item.priority}</span>
+            <span class="urgency-pill ${isOverdue ? 'urgency-overdue' : 'urgency-upcoming'}">${item.time_remaining}</span>
+          </div>
+          <div class="rail-title" title="${item.title}">${item.title}</div>
+          <div class="rail-bottom">
+            <span>${item.task_id}</span>
+            <span>${item.estimated_minutes}m</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
     }
 
     function renderHero(nextTask, explanation) {
@@ -426,12 +569,20 @@
       }
 
       const q = document.getElementById('task-search-input').value.toLowerCase().trim();
+      const now = new Date();
+
       const filtered = list.filter(t => {
         if (q && !t.title.toLowerCase().includes(q) && !t.task_id.toLowerCase().includes(q) && !(t.notes || '').toLowerCase().includes(q)) {
           return false;
         }
         if (currentFilter === 'critical' && t.priority < 4) return false;
-        if (currentFilter === 'overdue' && new Date(t.deadline) > new Date()) return false;
+        if (currentFilter === 'overdue') {
+          if (new Date(t.deadline) >= now) return false;
+        }
+        if (currentFilter === 'due_soon') {
+          const diffHours = (new Date(t.deadline) - now) / 3600000;
+          if (diffHours < 0 || diffHours > 24) return false;
+        }
         return true;
       });
 
@@ -448,13 +599,12 @@
         card.className = 'task-item-card';
 
         const dl = new Date(task.deadline);
-        const now = new Date();
         const isOverdue = dl < now && !isCompleted;
 
         card.innerHTML = `
           <div class="task-item-left">
             <div class="rank-badge">${isCompleted ? '✓' : '#' + (idx + 1)}</div>
-            <div class="custom-checkbox ${isCompleted ? 'completed' : ''}" onclick="toggleTaskStatus('${task.task_id}', ${isCompleted})">
+            <div class="custom-checkbox ${isCompleted ? 'completed' : ''}" onclick="toggleTaskStatus('${task.task_id}', ${isCompleted})" title="${isCompleted ? 'Click to reopen' : 'Click to complete'}">
               ${isCompleted ? '✓' : ''}
             </div>
             <div class="task-info-block">
@@ -469,7 +619,8 @@
               ${dl.toLocaleDateString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}
             </span>
             <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);">${task.estimated_minutes}m</span>
-            <button class="item-action-btn delete" title="Delete" onclick="deleteTask('${task.task_id}')">&times;</button>
+            <button class="item-action-btn edit" title="Edit Task" onclick="openEditModal('${task.task_id}')">✎</button>
+            <button class="item-action-btn delete" title="Delete Task" onclick="deleteTask('${task.task_id}')">&times;</button>
           </div>
         `;
         container.appendChild(card);
@@ -496,7 +647,9 @@
         row.className = 'tree-level';
         levels[lvl].forEach(node => {
           const el = document.createElement('div');
+          el.id = `tree-node-${node.index}`;
           el.className = `tree-node-glass ${node.is_root ? 'root' : ''}`;
+          el.onclick = () => inspectNode(node);
           el.innerHTML = `
             <div class="node-idx-badge">[${node.index}] ${node.is_root ? '★ ROOT' : ''}</div>
             <div class="node-title">${node.task.title}</div>
@@ -512,7 +665,8 @@
       arrayContainer.innerHTML = '';
       heap.nodes.forEach(node => {
         const slot = document.createElement('div');
-        slot.style.cssText = `padding: 6px 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: var(--font-mono); font-size: 11px;`;
+        slot.style.cssText = `padding: 6px 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: var(--font-mono); font-size: 11px; cursor: pointer;`;
+        slot.onclick = () => inspectNode(node);
         slot.innerHTML = `<span style="color: var(--accent-pink); font-weight: 700;">[${node.index}]</span> <span style="color: #FFF;">${node.task.task_id}</span>`;
         arrayContainer.appendChild(slot);
       });
@@ -528,6 +682,51 @@
       });
     }
 
+    // Node Inspector in Heap Lab
+    function inspectNode(node) {
+      // Clear previous highlights
+      document.querySelectorAll('.tree-node-glass').forEach(el => {
+        el.classList.remove('selected', 'parent-highlight', 'child-highlight');
+      });
+
+      // Highlight selected
+      const el = document.getElementById(`tree-node-${node.index}`);
+      if (el) el.classList.add('selected');
+
+      // Highlight parent
+      if (node.parent_index !== null) {
+        const pEl = document.getElementById(`tree-node-${node.parent_index}`);
+        if (pEl) pEl.classList.add('parent-highlight');
+      }
+
+      // Highlight children
+      if (node.left_child_index !== null) {
+        const lEl = document.getElementById(`tree-node-${node.left_child_index}`);
+        if (lEl) lEl.classList.add('child-highlight');
+      }
+      if (node.right_child_index !== null) {
+        const rEl = document.getElementById(`tree-node-${node.right_child_index}`);
+        if (rEl) rEl.classList.add('child-highlight');
+      }
+
+      // Populate card
+      document.getElementById('node-inspector-box').style.display = 'flex';
+      document.getElementById('insp-index').textContent = node.index;
+      document.getElementById('insp-title').textContent = `${node.task.title} (${node.task.task_id})`;
+
+      document.getElementById('insp-parent').textContent = node.parent_index !== null ? `Index [${node.parent_index}]` : 'None (Root)';
+      document.getElementById('insp-left').textContent = node.left_child_index !== null ? `Index [${node.left_child_index}]` : 'None (Leaf)';
+      document.getElementById('insp-right').textContent = node.right_child_index !== null ? `Index [${node.right_child_index}]` : 'None (Leaf)';
+      document.getElementById('insp-inv-status').textContent = node.parent_index !== null ? 'Key(Parent) <= Key(Node) ✓ Holds' : 'Root: Minimum Key in Heap ✓';
+    }
+
+    function closeInspector() {
+      document.getElementById('node-inspector-box').style.display = 'none';
+      document.querySelectorAll('.tree-node-glass').forEach(el => {
+        el.classList.remove('selected', 'parent-highlight', 'child-highlight');
+      });
+    }
+
     // Tab Switching
     function switchTab(tabId) {
       document.getElementById('view-workbench').style.display = (tabId === 'workbench') ? 'block' : 'none';
@@ -539,9 +738,8 @@
       document.getElementById('tab-btn-settings').classList.toggle('active', tabId === 'settings');
     }
 
-    // Popout Modal Controls
+    // Popout Modal Controls: Add
     function openScheduleModal() {
-      // Set default deadline to tomorrow 5 PM
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(17, 0, 0, 0);
@@ -556,6 +754,34 @@
 
     function closeModalOnOverlay(e) {
       if (e.target.id === 'schedule-modal') closeScheduleModal();
+    }
+
+    // Popout Modal Controls: Edit
+    function openEditModal(taskId) {
+      const allTasks = [...(appState.ranked_queue || []), ...(appState.completed_tasks || [])];
+      const task = allTasks.find(t => t.task_id === taskId);
+      if (!task) return;
+
+      document.getElementById('edit-task-id-badge').textContent = task.task_id;
+      document.getElementById('edit-task-id').value = task.task_id;
+      document.getElementById('edit-title-input').value = task.title;
+      document.getElementById('edit-notes-input').value = task.notes || '';
+      document.getElementById('edit-duration-input').value = task.estimated_minutes;
+      document.getElementById('edit-priority-input').value = task.priority;
+      document.getElementById('edit-status-input').value = task.status;
+
+      const dl = new Date(task.deadline);
+      document.getElementById('edit-deadline-input').value = dl.toISOString().slice(0, 16);
+
+      document.getElementById('edit-modal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.remove('active');
+    }
+
+    function closeEditModalOnOverlay(e) {
+      if (e.target.id === 'edit-modal') closeEditModal();
     }
 
     // Modal Presets
@@ -614,11 +840,36 @@
       }
     }
 
+    async function handleUpdateTask(e) {
+      e.preventDefault();
+      const taskId = document.getElementById('edit-task-id').value;
+      const title = document.getElementById('edit-title-input').value.trim();
+      const deadline = document.getElementById('edit-deadline-input').value;
+      const priority = parseInt(document.getElementById('edit-priority-input').value);
+      const estimated_minutes = parseInt(document.getElementById('edit-duration-input').value);
+      const status = document.getElementById('edit-status-input').value;
+      const notes = document.getElementById('edit-notes-input').value.trim();
+
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ title, deadline, priority, estimated_minutes, status, notes })
+      });
+
+      if (res.ok) {
+        closeEditModal();
+        showToast(`Updated ${taskId} & rebuilt heap in O(n)! ✨`);
+        await refreshState();
+      }
+    }
+
     async function completeHeroTask() {
       const res = await fetch('/api/tasks/complete-next', { method: 'POST' });
       if (res.ok) {
+        const data = await res.json();
         confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
-        showToast('Completed top task! Popped root in O(log n) ✨');
+        const nextTitle = data.new_next ? data.new_next.title : 'Queue empty';
+        showToast(`Completed '${data.completed.title}'! Next up: ${nextTitle}`);
         await refreshState();
       }
     }
@@ -628,16 +879,16 @@
       const res = await fetch(endpoint, { method: 'POST' });
       if (res.ok) {
         if (!isCompleted) confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
-        showToast(isCompleted ? 'Task reopened!' : 'Task finished!');
+        showToast(isCompleted ? `Reopened ${taskId} into active heap!` : `Completed ${taskId}!`);
         await refreshState();
       }
     }
 
     async function deleteTask(taskId) {
-      if (!confirm(`Delete ${taskId}?`)) return;
+      if (!confirm(`Are you sure you want to delete ${taskId}?`)) return;
       const res = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
       if (res.ok) {
-        showToast('Deleted task.');
+        showToast(`Deleted ${taskId} and updated heap.`);
         await refreshState();
       }
     }
@@ -664,18 +915,18 @@
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ work_window_minutes: parseInt(mins) })
       });
-      showToast('Work window saved.');
+      showToast('Work window saved to SQLite database.');
       await refreshState();
     }
 
     async function seedDemoTasks() {
       await fetch('/api/demo/seed', { method: 'POST' });
-      showToast('Academic demo tasks seeded!');
+      showToast('Academic demo tasks seeded into SQLite!');
       await refreshState();
     }
 
     async function resetAllTasks() {
-      if (!confirm('Clear all tasks?')) return;
+      if (!confirm('Clear all tasks from SQLite database?')) return;
       await fetch('/api/demo/reset', { method: 'POST' });
       showToast('All tasks cleared.');
       await refreshState();
@@ -697,12 +948,15 @@
       const t = document.getElementById('toast');
       document.getElementById('toast-text').textContent = msg;
       t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 3000);
+      setTimeout(() => t.classList.remove('show'), 3500);
     }
 
-    // Keyboard Shortcuts (Esc to close modal, Ctrl+Enter to submit)
+    // Keyboard Shortcuts (Esc to close modals, Ctrl+Enter to submit add form)
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeScheduleModal();
+      if (e.key === 'Escape') {
+        closeScheduleModal();
+        closeEditModal();
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         const modal = document.getElementById('schedule-modal');
         if (modal.classList.contains('active')) {
@@ -716,4 +970,3 @@
   </script>
 </body>
 </html>
-
