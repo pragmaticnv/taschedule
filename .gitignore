@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest cache
+.pytest_cache/
+
+# Local databases
+*.db
+*.sqlite3
+!data/.gitkeep
+
+# Environments & OS
+.env
+.venv/
+env/
+venv/
+.DS_Store
+Thumbs.db

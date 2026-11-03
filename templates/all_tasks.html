@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}All Tasks Inventory — TICKLINE{% endblock %}
+
+{% block content %}
+
+<div class="view-header">
+  <div>
+    <h1 class="view-title">All Tasks Inventory</h1>
+    <p class="view-desc">Complete database repository view. Search, filter by priority or urgency, edit and manage tasks.</p>
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <a href="/tasks/new" class="btn btn-primary">+ Quick Capture Task</a>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="instrument-card" style="padding: 14px 18px; background: #FAF9F5;">
+  <form method="GET" action="/all" style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;">
+    <div class="form-group" style="flex: 2; min-width: 200px;">
+      <label class="form-label">Search Query</label>
+      <input type="text" name="q" value="{{ query }}" placeholder="Search by title, ID, or notes..." class="form-input">
+    </div>
+
+    <div class="form-group" style="flex: 1; min-width: 140px;">
+      <label class="form-label">Status Filter</label>
+      <select name="status" class="form-select">
+        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Tasks</option>
+        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
+        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed Only</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="flex: 1; min-width: 140px;">
+      <label class="form-label">Priority Filter</label>
+      <select name="priority" class="form-select">
+        <option value="all" {% if priority_filter == 'all' %}selected{% endif %}>All Priorities</option>
+        <option value="5" {% if priority_filter == '5' %}selected{% endif %}>P5 - Critical</option>
+        <option value="4" {% if priority_filter == '4' %}selected{% endif %}>P4 - High</option>
+        <option value="3" {% if priority_filter == '3' %}selected{% endif %}>P3 - Medium</option>
+        <option value="2" {% if priority_filter == '2' %}selected{% endif %}>P2 - Normal</option>
+        <option value="1" {% if priority_filter == '1' %}selected{% endif %}>P1 - Low</option>
+      </select>
+    </div>
+
+    <div style="display: flex; gap: 8px;">
+      <button type="submit" class="btn btn-primary" style="height: 35px;">Filter</button>
+      <a href="/all" class="btn" style="height: 35px;">Reset</a>
+    </div>
+  </form>
+</div>
+
+<!-- Task Table -->
+{% if tasks and tasks|length > 0 %}
+<div class="data-table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 90px;">Task ID</th>
+        <th>Title &amp; Notes</th>
+        <th style="width: 130px;">Status / Urgency</th>
+        <th style="width: 160px;">Deadline (UTC)</th>
+        <th style="width: 90px;">Priority</th>
+        <th style="width: 70px;">Effort</th>
+        <th style="width: 60px;">Ver</th>
+        <th style="width: 160px; text-align: right;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in tasks %}
+      <tr>
+        <td class="num-cell" style="font-weight: 600;">{{ task.task_id }}</td>
+        <td>
+          <div style="font-weight: 600; color: var(--text-ink);">{{ task.title }}</div>
+          {% if task.notes %}
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">{{ task.notes }}</div>
+          {% endif %}
+        </td>
+        <td>
+          {% if task.status == 'completed' %}
+            <span class="tag" style="background: #E8F5EE; color: #2D6A4F; font-weight: 600;">&check; Completed</span>
+          {% else %}
+            <span class="tag {% if task.urgency_category() == 'overdue' %}tag-overdue{% elif task.urgency_category() == 'due_soon' %}tag-due-soon{% else %}tag-upcoming{% endif %}">
+              {{ task.time_remaining_str() }}
+            </span>
+          {% endif %}
+        </td>
+        <td class="num-cell" style="color: var(--text-muted);">
+          {{ task.deadline.strftime('%Y-%m-%d %H:%M') }}
+        </td>
+        <td>
+          <span class="tag tag-prio-{{ task.priority }}">
+            {{ task.priority_label }}
+          </span>
+        </td>
+        <td class="num-cell">{{ task.estimated_minutes }}m</td>
+        <td class="num-cell" style="color: var(--text-faint);">v{{ task.version }}</td>
+        <td style="text-align: right;">
+          <div style="display: inline-flex; gap: 6px;">
+            {% if task.status == 'active' %}
+            <form action="/tasks/{{ task.task_id }}/complete" method="POST" style="margin: 0;">
+              <button type="submit" class="btn btn-sm" title="Mark Completed">&check;</button>
+            </form>
+            {% else %}
+            <form action="/tasks/{{ task.task_id }}/reopen" method="POST" style="margin: 0;">
+              <button type="submit" class="btn btn-sm" title="Reopen Task">&#8634; Reopen</button>
+            </form>
+            {% endif %}
+            <a href="/tasks/{{ task.task_id }}/edit" class="btn btn-sm">Edit</a>
+            <form action="/tasks/{{ task.task_id }}/delete" method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to permanently delete task {{ task.task_id }}?');">
+              <button type="submit" class="btn btn-sm btn-danger">&times;</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="instrument-card" style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+  No tasks matched the selected query or filters.
+</div>
+{% endif %}
+
+{% endblock %}
+

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Heap Laboratory — TICKLINE{% endblock %}
+
+{% block content %}
+
+<div class="view-header">
+  <div>
+    <h1 class="view-title">Heap Laboratory</h1>
+    <p class="view-desc">Live structural inspection of the 0-indexed binary min-heap array, invariant checks, and operation trace.</p>
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <form action="/demo/seed" method="POST" style="margin: 0;">
+      <button type="submit" class="btn">Reset to Standard Dataset</button>
+    </form>
+    <a href="/queue" class="btn btn-primary">&larr; Return to Workbench</a>
+  </div>
+</div>
+
+<!-- Invariant Verification Diagnostic Card -->
+<div class="instrument-card" style="border-left: 4px solid {% if invariant_valid %}#2D6A4F{% else %}var(--vermilion){% endif %};">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: {% if invariant_valid %}#2D6A4F{% else %}var(--vermilion){% endif %};">
+        &bull; Heap Invariant Status: {% if invariant_valid %}SATISFIED &amp; SOUND{% else %}VIOLATED{% endif %}
+      </div>
+      <div style="font-size: 13px; margin-top: 4px; color: var(--text-ink);">
+        {% if invariant_valid %}
+          All {{ heap_size }} nodes satisfy the mathematical min-heap condition: <code>Key(Parent(i)) &le; Key(i)</code> for all <code>i &gt; 0</code>.
+        {% else %}
+          {{ invariant_error }}
+        {% endif %}
+      </div>
+    </div>
+    <div style="text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+      <div>Total Elements (n): <strong>{{ heap_size }}</strong></div>
+      <div>Tree Height: <strong>&lfloor;log&sub2;({{ heap_size }})&rfloor; = {{ tree_height }}</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- Array Representation Section -->
+<section>
+  <div class="card-label">
+    <span>Sequential Array Representation: A[0 .. {{ heap_size - 1 }}]</span>
+    <span>Zero-Indexed Contiguous Buffer</span>
+  </div>
+
+  {% if heap_nodes and heap_nodes|length > 0 %}
+  <div class="heap-array-visualizer">
+    {% for node in heap_nodes %}
+    <div class="heap-cell {% if node.is_root %}root{% endif %}">
+      <div class="heap-cell-header">
+        <span>Index [{{ node.index }}]</span>
+        <span>Lvl {{ node.level }}</span>
+      </div>
+      <div class="heap-cell-body">
+        <div style="font-weight: 600; color: var(--text-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ node.value.title }}">
+          {{ node.value.title }}
+        </div>
+        <div class="heap-cell-key" title="Comparator Composite Key: {{ node.key }}">
+          ID: {{ node.value.task_id }} &bull; P{{ node.value.priority }}
+        </div>
+        <div class="heap-cell-rel">
+          <div>Parent: {% if node.parent_index is not none %}[{{ node.parent_index }}]{% else %}None (Root){% endif %}</div>
+          <div>Children: [{% if node.left_child_index is not none %}{{ node.left_child_index }}{% else %}&ndash;{% endif %}, {% if node.right_child_index is not none %}{{ node.right_child_index }}{% else %}&ndash;{% endif %}]</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="instrument-card" style="text-align: center; color: var(--text-muted); padding: 32px;">
+    Heap is currently empty. Add tasks to inspect array indexing.
+  </div>
+  {% endif %}
+</section>
+
+<!-- Mathematical Node & Index Relationship Table -->
+<section>
+  <div class="card-label">
+    <span>Parent-Child Mathematical Mapping &amp; Invariant Breakdown</span>
+    <span>Calculated in O(1) via Index Arithmetic</span>
+  </div>
+
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 70px;">Index (i)</th>
+          <th style="width: 70px;">Tree Lvl</th>
+          <th style="width: 90px;">Task ID</th>
+          <th>Task Title</th>
+          <th style="width: 110px;">Parent &lfloor;(i-1)/2&rfloor;</th>
+          <th style="width: 100px;">Left 2i+1</th>
+          <th style="width: 100px;">Right 2i+2</th>
+          <th style="width: 100px;">Leaf Node?</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for node in heap_nodes %}
+        <tr>
+          <td class="num-cell" style="font-weight: 700; color: {% if node.is_root %}var(--vermilion){% else %}var(--text-ink){% endif %};">
+            [{{ node.index }}] {% if node.is_root %}(Root){% endif %}
+          </td>
+          <td class="num-cell">{{ node.level }}</td>
+          <td class="num-cell">{{ node.value.task_id }}</td>
+          <td style="font-weight: 500;">{{ node.value.title }}</td>
+          <td class="num-cell">
+            {% if node.parent_index is not none %}
+              Index [{{ node.parent_index }}]
+            {% else %}
+              <span style="color: var(--text-faint);">&mdash;</span>
+            {% endif %}
+          </td>
+          <td class="num-cell">
+            {% if node.left_child_index is not none %}
+              Index [{{ node.left_child_index }}]
+            {% else %}
+              <span style="color: var(--text-faint);">None</span>
+            {% endif %}
+          </td>
+          <td class="num-cell">
+            {% if node.right_child_index is not none %}
+              Index [{{ node.right_child_index }}]
+            {% else %}
+              <span style="color: var(--text-faint);">None</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if node.is_leaf %}
+              <span class="tag tag-upcoming">Leaf</span>
+            {% else %}
+              <span class="tag" style="background: var(--bg-surface);">Internal</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Operational Event Trace Log -->
+<section>
+  <div class="card-label">
+    <span>Algorithmic Operation Event Trace Log (Live Sift-Up &amp; Sift-Down Activity)</span>
+    <span>Educational Audit Trail</span>
+  </div>
+
+  <div class="trace-log">
+    {% if trace_log and trace_log|length > 0 %}
+      {% for event in trace_log %}
+      <div class="trace-line">
+        <span class="trace-time">{{ event.timestamp }}</span>
+        <span class="trace-op">[{{ event.operation }}]</span>
+        <span class="trace-detail">
+          {{ event.explanation }} &bull;
+          Comparisons: <strong>{{ event.comparisons }}</strong> &bull;
+          Swaps: <strong>{{ event.swaps|length }}</strong>
+          {% if event.swaps|length > 0 %}({{ event.swaps }}){% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div style="color: #7A7E78;">No operations recorded yet in session trace buffer.</div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Complexity Reference Card -->
+<section class="instrument-card" style="background: #FAF8F4;">
+  <div class="card-label">
+    <span>Theoretical vs. Measured Asymptotic Complexity</span>
+    <span>ADSA Viva Reference</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; font-family: var(--font-mono); font-size: 11px;">
+    <div style="padding: 10px; background: #FFFFFF; border: 1px solid var(--border-rule);">
+      <div style="color: var(--text-muted); text-transform: uppercase;">Peek (Root Access)</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--text-ink); margin-top: 4px;">O(1)</div>
+      <div style="color: #6C706B; margin-top: 2px;">Direct index array[0] inspection.</div>
+    </div>
+    <div style="padding: 10px; background: #FFFFFF; border: 1px solid var(--border-rule);">
+      <div style="color: var(--text-muted); text-transform: uppercase;">Insert (Sift-Up)</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--text-ink); margin-top: 4px;">O(log n)</div>
+      <div style="color: #6C706B; margin-top: 2px;">Worst-case path from leaf to root.</div>
+    </div>
+    <div style="padding: 10px; background: #FFFFFF; border: 1px solid var(--border-rule);">
+      <div style="color: var(--text-muted); text-transform: uppercase;">Extract-Min (Pop)</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--text-ink); margin-top: 4px;">O(log n)</div>
+      <div style="color: #6C706B; margin-top: 2px;">Replace root, sift-down to leaf.</div>
+    </div>
+    <div style="padding: 10px; background: #FFFFFF; border: 1px solid var(--border-rule);">
+      <div style="color: var(--text-muted); text-transform: uppercase;">Bottom-Up Build Heap</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--vermilion); margin-top: 4px;">O(n)</div>
+      <div style="color: #6C706B; margin-top: 2px;">Linear time via sum of node heights.</div>
+    </div>
+    <div style="padding: 10px; background: #FFFFFF; border: 1px solid var(--border-rule);">
+      <div style="color: var(--text-muted); text-transform: uppercase;">Sorted Projection</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--text-ink); margin-top: 4px;">O(n log n)</div>
+      <div style="color: #6C706B; margin-top: 2px;">n sequential extract-min operations.</div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+

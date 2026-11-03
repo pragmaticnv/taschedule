@@ -1,0 +1,203 @@
+PROJECT 17 — TASK SCHEDULER WITH DEADLINES
+
+Project analysis, technical specification, UI direction and Antigravity master prompt
+
+Advanced Data Structures Mini-Project | Recommended implementation: Python + Streamlit
+
+1. Source requirement analysis
+
+The supplied project topics spreadsheet lists Project 17 as “Task Scheduler with Deadlines.” Difficulty: Easy. Main data structure: Heap / Priority Queue. Objective: Organize tasks according to deadlines or priority. Suggested operations: add tasks, set deadline/priority, view next task, complete tasks. Expected learning: heap operations and priority-based ordering. Suggested languages: C++, Java, Python.
+
+Submission guidelines in the spreadsheet call for: problem statement and objectives; data-structure selection and justification; algorithm/flowchart; working implementation; sample inputs/outputs; time-complexity analysis; project report and demonstration.
+
+2. Product concept
+
+Product working name: TICKLINE (renameable). Concept: a deadline-aware workbench for students who want to see what deserves attention next, why it is next, and whether their available time is enough. The visual design should feel like a crafted desktop instrument, not a generic AI productivity dashboard.
+
+3. Feature scope
+
+Must-have: assessed core
+
+Create, edit, delete, complete and reopen tasks.
+
+Each task has title, optional notes, deadline date/time, estimated dura tion, priority, status, creation time and stable ID.
+
+Explicit “Next task” recommendation and visible reason (earliest deadline, priority, urgency tie-break).
+
+Heap-backed priority queue with insert, peek, pop/complete-next, remove/update strategy and rebuild behavior.
+
+Overdue, due-soon, upcoming, completed and unscheduled states.
+
+Search, filter and sort views.
+
+Seed demo data, reset demo and deterministic example outputs.
+
+Heap inspector showing array representation and parent/child relationships; operation counter or event trace for insert/pop.
+
+Validation for past deadlines, blank titles, nonpositive duration, duplicate actions and timezone assumptions.
+
+Persistence across restarts using SQLite or a clearly documented local storage approach.
+
+Distinctive features worth implementing
+
+“Why this task?” explanation card: explain the exact ordering rule and relevant values.
+
+Time-fit indicator: compare duration estimate with the user’s available work window; flag mismatch without claiming to solve scheduling optimally.
+
+Deadline pressure strip: show time remaining as a compact label, not dramatic color overload.
+
+Focus queue vs. full task list: separate one recommended next task from the full backlog.
+
+Queue timeline: upcoming deadlines rendered as a restrained horizontal/vertical time rail.
+
+Heap laboratory: toggle between human-readable task ranking and internal heap-array view.
+
+Completion receipt: show task, finished timestamp and queue change after completion.
+
+Collision warning: warn when estimated task durations collectively exceed the time remaining before a deadline window; label this as a rough capacity warning.
+
+Keyboard-friendly quick capture and clear empty/loading/error states.
+
+Avoid in the first version
+
+Avoid AI chatbots, AI-generated task plans, motivational quotes, streak gamification, weather widgets, social feeds, decorative analytics, fake collaboration, excessive gradients, meaningless progress rings, and “smart” claims that are not backed by implemented logic. These dilute the data-structure learning objective.
+
+4. Scheduling policy and algorithm design
+
+Recommended deterministic policy: eligible active tasks are ranked by (1) deadline ascending, (2) priority descending, (3) creation timestamp ascending, (4) stable task ID ascending. This makes the deadline the primary key and priority a tie-breaker. If your instructor expects priority-first ordering, expose a policy setting and document both policies. The UI must name the active policy.
+
+A binary min-heap stores a composite key. Convert descending priority into a sortable component (for example, negative numeric priority). Do not rely on heap iteration to show sorted results; repeatedly popping a copy or using a separate sorted projection is needed.
+
+Recommended implementation approach: maintain a task repository as source of truth and rebuild the heap from active tasks after edits, deletes, reopen operations, or policy changes. This is easier to reason about and avoids stale heap entries. For larger scale, use lazy invalidation/version IDs, but it is unnecessary for this mini-project. Demonstrate insertion and removal on the live queue.
+
+Next-task recommendation is not the same as a complete feasible schedule. Tasks may overlap, take longer than estimated, depend on other tasks, or have flexible deadlines. In v1, call it “Next up” or “Queue order,” not an optimal plan.
+
+5. Data model
+
+Task fields: task_id (UUID or stable integer), title, notes, deadline (timezone-aware or explicitly local), estimated_minutes, priority (e.g. 1–5), status (active/completed), created_at, completed_at, updated_at, version.
+
+Suggested persistence: SQLite. Suggested tables: tasks; optionally app_settings for ordering policy and preferences. Store timestamps consistently (UTC preferred) and display in local time. If the implementation simplifies this, state the assumption in the report.
+
+6. Recommended language and stack
+
+Python 3.12+: best balance for fast delivery, readable algorithms, and a credible custom heap implementation.
+
+Streamlit: fast desktop-web UI for a college demonstration. Use carefully designed layout, custom CSS only where supported, and reusable functions.
+
+SQLite: durable local task storage without requiring a hosted database or account.
+
+pytest: test heap invariants, ranking rules, mutations, overdue logic and persistence.
+
+Plotly only if a meaningful queue timeline adds value; avoid adding chart dependencies by default.
+
+Alternative: Java + JavaFX is suitable if your evaluation values object-oriented desktop application development. C++ is suitable if implementation purity is the priority, but building a distinctive polished web UI will take more work. Do not implement the same core in multiple languages.
+
+7. UI/UX direction: “crafted instrument”
+
+Visual concept: an editorial task console inspired by studio equipment, printed timetables and field notebooks. Use warm paper/off-white (#F4F1E9), near-black ink (#20211F), muted graphite, and one restrained vermilion accent (#C84C36). Use hairline separators, typography with a strong display face paired with a highly legible sans-serif, deliberate spacing and asymmetry. Avoid the standard purple/blue AI SaaS gradient, oversized hero text, glassmorphism, generic 3-column feature cards and excessive rounded pills.
+
+Layout: slim left rail for Queue, All tasks, Completed, Heap lab, Settings; compact top strip for current date and active ordering rule; main column with “NEXT UP” task and rationale; adjacent or lower queue list; narrow deadline rail. On smaller screens collapse navigation and stack content.
+
+Use visual hierarchy rather than decoration: deadline text, task title, estimated effort, priority, and rationale should be scannable. Distinguish overdue using label + icon + text, not color alone. Support keyboard focus, readable contrast, useful empty states, and responsive layouts.
+
+8. Screens and interactions
+
+Queue: recommended task, why it ranks first, complete action, next few tasks, deadline rail.
+
+All tasks: table/list with filters for status, priority, due window and search; edit/delete controls.
+
+Quick Add: compact form with title, deadline, duration and priority; sensible defaults but no hidden assumptions.
+
+Task detail/edit: notes, audit timestamps, status and validation messages.
+
+Heap Lab: current heap array, parent-child indices, insert/pop animation or step-through trace, complexity notes.
+
+Completed: completion timestamp and reopen action.
+
+Settings: ordering policy, display timezone and demo-data reset.
+
+9. Complexity analysis to include
+
+Heap peek: O(1).
+
+Heap insertion: O(log n).
+
+Heap extract-min / pop: O(log n).
+
+Heap build from n tasks: O(n) using bottom-up heapify.
+
+Heap search for arbitrary task: O(n) absent an auxiliary index.
+
+Editing a task with simple full rebuild: O(n) rebuild; explain this deliberate simplicity.
+
+Sorted display by sorting active tasks: O(n log n).
+
+Space: O(n) for heap/repository; state any auxiliary maps.
+
+Use measured behavior and the actual chosen implementation. If using heapq plus a map or custom heap, make the complexity discussion match the code. A heap is not a fully sorted collection.
+
+10. Acceptance tests
+
+Equal deadlines resolve by priority, then creation time, then stable ID.
+
+Inserting and popping preserve heap invariant.
+
+Editing deadline or priority changes the queue correctly.
+
+Completing the next task removes it from active queue and persists completion.
+
+Reopening a completed task reinserts it.
+
+Past-deadline tasks are marked overdue without crashing.
+
+Deleting a task does not leave a ghost queue entry.
+
+Reloading app restores tasks and settings.
+
+Invalid fields show actionable errors.
+
+Demo mode produces reproducible ordering.
+
+11. Demonstration sequence
+
+Open seeded tasks and state the active ordering policy.
+
+Show the recommended next task and explain why it is first.
+
+Open Heap Lab and identify root, children and array representation.
+
+Add a task with an earlier deadline; show heap insertion and changed queue.
+
+Complete the next task; show pop, receipt and next recommendation.
+
+Edit a deadline; demonstrate heap rebuild or update strategy.
+
+Show overdue/capacity warning and explain what it does—and does not—claim.
+
+Finish with time complexity and tests.
+
+12. Antigravity master prompt
+
+You are a senior full-stack engineer, interaction designer, and data-structures instructor. Build a complete, working mini-project named TICKLINE (working name; make it easy to rename): “Task Scheduler with Deadlines,” Project 17 from an Advanced Data Structures course.MISSIONDeliver a polished, distinctive, fully functional task-scheduling web app that visibly demonstrates a Heap / Priority Queue. This is a real implementation, not a static mockup. Prioritize correctness, explainability, and an original visual identity.SOURCE REQUIREMENTSThe assignment describes organizing tasks by deadline or priority. Required operations: add tasks, set deadline/priority, view next task, complete tasks. Learning outcome: heap operations and priority-based retrieval. The submission needs problem/objectives, data-structure justification, algorithm/flowchart, working code, sample I/O, time complexity, report and demo.STACKUse Python 3.12+, Streamlit, SQLite, and pytest. Keep dependencies modest. Use a clean modular architecture:- app.py: application entry and routing- core/models.py: typed task/domain models- core/priority_queue.py: heap implementation or thin wrapper with transparent semantics- core/scheduler.py: policy and next-task selection- core/repository.py: SQLite persistence- tests/: unit and integration tests- docs/: report, algorithm notes, sample data and run instructionsUse a custom binary heap if feasible for teaching transparency. Do not hide the algorithm behind a library-only implementation. If standard-library heapq is selected, add a well-documented visualizable wrapper and test it.ORDERING POLICYDefault to earliest deadline first; priority descending is the tie-breaker; creation time ascending next; stable task ID final tie-breaker. Make the active policy visible. If implementing priority-first as an alternative, make it configurable and clearly label the behavior. Do not mix policies silently.Heap key should be deterministic. Use a task repository as source of truth. For this course-scale app, rebuild the heap after task edits/deletes/reopens/policy changes to avoid stale entries. Document that rebuild is O(n). A more advanced invalidation strategy is optional only if robustly tested.Never claim that heap traversal returns a sorted list. For a sorted view, create a sorted projection or pop a copy.TASK DATAEach task: stable ID, title, optional notes, deadline, estimated duration in minutes, priority 1–5, active/completed status, created/updated timestamps, optional completed timestamp, version if needed. Handle date/time consistently and explain timezone assumptions. Persist using SQLite. Seed realistic demo tasks and provide reset demo data.REQUIRED FUNCTIONALITY1. Create, edit, delete, complete and reopen tasks.2. Set deadline, priority and duration.3. Show “Next up” plus an honest, concise explanation of why it ranks first.4. Show queue order and a searchable/filterable all-task list.5. Show overdue, due soon, upcoming, completed and unscheduled categories as applicable.6. Completion receipt with task title/time and updated queue.7. Persistent data after restart.8. Demo dataset and reset action.9. Heap laboratory displaying array indices, root, parent/child relationships, insert/pop operations and a trace or step-through mode.10. Validation and graceful error states.11. Keyboard-friendly quick capture, clear empty state, accessible contrast and responsive layout.SIGNATURE FEATURES (implement these well, not as empty decoration)- “Why this task?” card citing the actual active comparator and relevant task values.- Deadline rail showing the nearest upcoming deadlines.- Capacity warning: compare rough estimated task load to available time where a user-defined work window exists. Explicitly mark it as an estimate, not a guaranteed schedule.- Heap lab: live array view and operation trace that reflects actual algorithm state.- Queue-change receipt after complete/add/edit.Do not fabricate insights, percentages, AI recommendations or productivity scores.UI ART DIRECTION — STRICTThe result must not look like a generic AI-generated SaaS template.Visual metaphor: a crafted scheduling instrument blending an editorial timetable, a studio control panel, and a field notebook.Palette: warm paper/off-white (#F4F1E9), ink black (#20211F), graphite gray, one restrained vermilion accent (#C84C36). No default purple-blue gradient. Avoid glassmorphism, neon, generic gradient hero, giant empty dashboard, generic card grid, floating AI chatbot, decorative charts, unnecessary rounded pills, emoji iconography, and marketing landing-page sections.Use a slim navigation rail; fine rules; asymmetric but disciplined grid; restrained typographic hierarchy; compact labels; clear tabular numerals for times; intentional whitespace. Prefer square or subtly cut-corner surfaces over pill cards. Use one distinctive display font if reliably available and a readable system sans fallback. Do not depend on remote fonts to make the app usable.The main Queue view should show:- Top strip: date/context and active policy- Primary column: “NEXT UP” with task, deadline, effort, priority, rationale and completion action- Queue beneath/alongside: ranked tasks with compact deadline/effort metadata- Narrow deadline rail or agenda strip- Secondary links to All Tasks, Completed, Heap Lab, SettingsMake layout responsive. Do not let CSS break Streamlit controls. Keep UI components consistent.UX DETAILS- Use labels and icons together; never rely on color alone for overdue/priority.- Confirmation for destructive delete.- Friendly but direct validation.- Preserve user-entered data on recoverable errors.- Show date/time clearly and avoid ambiguous formats.- Distinguish task deadline from planned work time.- Make buttons perform real actions.- No fake notifications, fake sync, fake integrations, fake users or fake AI.- Seeded demo data should be obviously labeled and resettable.ALGORITHM AND DOCUMENTATIONCreate a report with: problem statement, objectives, scope, data model, data-structure justification, comparator policy, heap operations, pseudocode, flowchart (Mermaid or clear text), time/space complexity, design decisions, limitations, test cases, sample input/output, setup/run instructions and demonstration script.Discuss:- peek O(1)- insert O(log n)- pop O(log n)- bottom-up heapify O(n)- arbitrary search O(n) without index- sort display O(n log n)- full rebuild O(n)State actual assumptions and implementation details. Explain that priority queue ordering is a selection policy, not a proof of an optimal full timetable.QUALITY BAR- Build and run the application; do not stop at a plan.- Add tests for comparator ties, heap invariants, insertion/pop, edits, deletes, completion/reopen, overdue behavior, persistence, and invalid input.- Resolve all runtime errors and test failures.- Include a concise README with exact setup and launch commands.- Keep core algorithm code readable for a viva.- Include sample data and expected queue order.- Avoid overengineering, but make all primary controls functional.- If you cannot run a command in the environment, state that limitation honestly and provide exact next steps.- At the end, summarize files created, implemented features, tests and run instructions.Begin by inspecting the workspace, then implement the complete project.
+
+13. Recommended viva talking points
+
+Why a heap? It supports efficient retrieval of the highest-ranked eligible task.
+
+Why not a BST? Both can support ordering, but a heap is optimized for repeatedly retrieving the root, not arbitrary range queries.
+
+Why a comparator? It formalizes the scheduler’s ordering and tie-break behavior.
+
+Why rebuild after editing? Simpler correctness and no stale entries for a small course project, at O(n) cost.
+
+What is the limitation? The top-ranked task is not necessarily the only feasible or globally optimal scheduling choice.
+
+How would you scale it? Indexed heap, versioned lazy deletion, dependency constraints, and explicit time-slot scheduling—each with added complexity.
+
+14. Suggested project structure
+
+tickline/  app.py  core/    models.py    priority_queue.py    scheduler.py    repository.py  tests/    test_heap.py    test_scheduler.py    test_repository.py  docs/    project_report.md    demo_script.md  data/    .gitkeep  requirements.txt  README.md
+
+15. Final recommendation
+
+Build Python + Streamlit + SQLite. Make the heap lab and “Why this task?” the signature moments. Keep the interface quiet, editorial and information-dense. A narrow, correct, finished project will outperform a feature-heavy but generic AI-looking prototype.

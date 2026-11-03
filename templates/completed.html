@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Completed Archive — TICKLINE{% endblock %}
+
+{% block content %}
+
+<div class="view-header">
+  <div>
+    <h1 class="view-title">Completed Tasks Archive</h1>
+    <p class="view-desc">Audit ledger of resolved milestones. Completed items are removed from the active min-heap and can be reopened at any time.</p>
+  </div>
+  <div>
+    <a href="/queue" class="btn">&larr; Back to Workbench</a>
+  </div>
+</div>
+
+{% if tasks and tasks|length > 0 %}
+<div class="data-table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 90px;">Task ID</th>
+        <th>Task Title</th>
+        <th style="width: 170px;">Completed Timestamp (UTC)</th>
+        <th style="width: 170px;">Original Deadline</th>
+        <th style="width: 90px;">Priority</th>
+        <th style="width: 80px;">Effort</th>
+        <th style="width: 120px; text-align: right;">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in tasks %}
+      <tr>
+        <td class="num-cell" style="font-weight: 600;">{{ task.task_id }}</td>
+        <td>
+          <div style="font-weight: 600; color: var(--text-ink); text-decoration: line-through; color: var(--text-muted);">
+            {{ task.title }}
+          </div>
+          {% if task.notes %}
+          <div style="font-size: 11px; color: var(--text-faint); margin-top: 2px;">{{ task.notes }}</div>
+          {% endif %}
+        </td>
+        <td class="num-cell" style="color: #2D6A4F; font-weight: 600;">
+          {{ task.completed_at.strftime('%Y-%m-%d %H:%M') if task.completed_at else 'Archived' }}
+        </td>
+        <td class="num-cell" style="color: var(--text-faint);">
+          {{ task.deadline.strftime('%Y-%m-%d %H:%M') }}
+        </td>
+        <td>
+          <span class="tag tag-prio-{{ task.priority }}">
+            {{ task.priority_label }}
+          </span>
+        </td>
+        <td class="num-cell">{{ task.estimated_minutes }}m</td>
+        <td style="text-align: right;">
+          <form action="/tasks/{{ task.task_id }}/reopen" method="POST" style="margin: 0; display: inline;">
+            <button type="submit" class="btn btn-sm">
+              &#8634; Reopen Task
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="instrument-card" style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+  No tasks completed yet. Mark tasks complete from the Workbench to view receipt history here.
+</div>
+{% endif %}
+
+{% endblock %}
+

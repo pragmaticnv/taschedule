@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Workbench & Queue — TICKLINE{% endblock %}
+
+{% block content %}
+
+<!-- Completion / Action Receipt (if available) -->
+{% if receipt %}
+<div class="receipt-banner">
+  <div class="receipt-title">
+    <span style="font-size: 16px;">&check;</span>
+    <span>Receipt: Completed <strong>{{ receipt.title }}</strong> ({{ receipt.task_id }}) at {{ receipt.completed_at }}</span>
+  </div>
+  <div style="font-family: var(--font-mono); font-size: 11px; color: #2D6A4F;">
+    Heap Pop Executed &bull; Root Updated in O(log n)
+  </div>
+</div>
+{% endif %}
+
+<!-- Capacity Warning Banner (Heuristic Check) -->
+{% if capacity and capacity.has_overload %}
+<div class="capacity-banner danger">
+  <div>
+    <div class="capacity-title">
+      <span style="color: var(--vermilion); font-weight: 800;">&excl;</span>
+      Capacity Warning: Estimated Workload ({{ capacity.total_estimated_minutes }} min) Exceeds Available Window ({{ capacity.work_window_minutes }} min)
+    </div>
+    <div class="capacity-disclaimer">
+      Deficit: {{ capacity.deficit_minutes }} min &bull; {{ capacity.disclaimer }}
+    </div>
+  </div>
+  <a href="/settings" class="btn btn-sm">Adjust Window</a>
+</div>
+{% endif %}
+
+<div class="view-header">
+  <div>
+    <h1 class="view-title">Queue Workbench</h1>
+    <p class="view-desc">Deterministic priority queue backed by binary min-heap. Ordered by active comparator.</p>
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <a href="/heap-lab" class="btn">
+      <span>Heap Laboratory</span> &rarr;
+    </a>
+    <a href="/tasks/new" class="btn btn-primary">
+      + Quick Capture
+    </a>
+  </div>
+</div>
+
+<!-- Deadline Rail / Pressure Strip -->
+{% if deadline_rail and deadline_rail|length > 0 %}
+<div>
+  <div class="card-label">
+    <span>Deadline Pressure Rail (Upcoming Chronology)</span>
+    <span>{{ deadline_rail|length }} active deadlines</span>
+  </div>
+  <div class="deadline-rail">
+    {% for item in deadline_rail %}
+    <div class="rail-item">
+      <div>
+        <div class="rail-time">
+          <span>{{ item.deadline_str }}</span>
+          <span class="tag {% if item.urgency == 'overdue' %}tag-overdue{% elif item.urgency == 'due_soon' %}tag-due-soon{% else %}tag-upcoming{% endif %}">
+            {{ item.time_remaining }}
+          </span>
+        </div>
+        <div class="rail-title" title="{{ item.title }}">{{ item.title }}</div>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">
+        <span>{{ item.task_id }}</span>
+        <span>{{ item.estimated_minutes }} min</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- NEXT UP Spotlight Card (Min-Heap Root) -->
+{% if next_task %}
+<section class="instrument-card next-up-card">
+  <div class="card-label">
+    <span>&blacktriangledown; Root Element (Heap Index 0 &bull; O(1) Peek)</span>
+    <span class="tag tag-prio-{{ next_task.priority }}">Priority: {{ next_task.priority_label }} (Level {{ next_task.priority }})</span>
+  </div>
+
+  <div class="next-up-header">
+    <div style="flex: 1;">
+      <h2 class="next-up-title">{{ next_task.title }}</h2>
+      {% if next_task.notes %}
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px; line-height: 1.45;">
+        {{ next_task.notes }}
+      </p>
+      {% endif %}
+
+      <div class="next-up-meta">
+        <span class="tag {% if next_task.urgency_category() == 'overdue' %}tag-overdue{% elif next_task.urgency_category() == 'due_soon' %}tag-due-soon{% else %}tag-upcoming{% endif %}">
+          {% if next_task.urgency_category() == 'overdue' %}&bull; OVERDUE{% else %}&bull; ACTIVE{% endif %}
+          &mdash; {{ next_task.time_remaining_str() }}
+        </span>
+        <span class="tag tag-upcoming">
+          Deadline: {{ next_task.deadline.strftime('%b %d, %Y at %H:%M UTC') }}
+        </span>
+        <span class="tag tag-upcoming">
+          Effort: {{ next_task.estimated_minutes }} min
+        </span>
+        <span class="tag tag-upcoming">
+          ID: {{ next_task.task_id }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Primary Action: Complete Next -->
+    <div style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+      <form action="/tasks/complete-next" method="POST" style="margin: 0;">
+        <button type="submit" class="btn btn-vermilion" style="width: 100%; padding: 10px 18px; font-size: 12px;">
+          &check; Complete Next Up
+        </button>
+      </form>
+      <a href="/tasks/{{ next_task.task_id }}/edit" class="btn btn-sm" style="text-align: center;">
+        Edit Task
+      </a>
+    </div>
+  </div>
+
+  <!-- "Why This Task?" Algorithmic Explanation Card -->
+  {% if explanation and explanation.has_task %}
+  <div class="why-card">
+    <div class="why-header">
+      <span>&quest; Why This Task First?</span>
+      <span style="font-weight: normal; color: var(--text-muted);">&mdash; Policy: {{ explanation.policy_name }}</span>
+    </div>
+    <div class="why-body">
+      <strong>Determinant:</strong> {{ explanation.primary_reason }}.
+    </div>
+
+    {% if explanation.criteria and explanation.criteria|length > 0 %}
+    <div class="why-criteria-list">
+      {% for crit in explanation.criteria %}
+      <div class="why-criterion">
+        <span class="criterion-status">&bull; {{ crit.status }}:</span>
+        <span style="color: var(--text-ink); font-weight: 600;">{{ crit.rule }}</span>
+        <span style="color: var(--text-muted);">&mdash; {{ crit.details }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if explanation.runner_up_title %}
+    <div style="margin-top: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); border-top: 1px dashed var(--border-subtle); padding-top: 6px;">
+      Runner-up contender: <em>"{{ explanation.runner_up_title }}"</em> was outranked on the active comparator key.
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% else %}
+<div class="instrument-card" style="text-align: center; padding: 48px 20px;">
+  <h3 style="font-family: var(--font-serif); font-size: 20px; color: var(--text-ink);">Queue is Empty</h3>
+  <p style="color: var(--text-muted); margin-top: 8px; font-size: 13px;">No active tasks in the binary min-heap. You can quick capture tasks or seed demo data.</p>
+  <div style="margin-top: 18px; display: flex; justify-content: center; gap: 12px;">
+    <a href="/tasks/new" class="btn btn-primary">+ Quick Capture Task</a>
+    <form action="/demo/seed" method="POST" style="margin: 0;">
+      <button type="submit" class="btn">Seed Academic Demo Tasks</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- Ranked Active Queue Table -->
+{% if ranked_queue and ranked_queue|length > 0 %}
+<section>
+  <div class="card-label">
+    <span>Ranked Priority Queue (Full Heap Sorted Projection &bull; O(n log n))</span>
+    <span>{{ ranked_queue|length }} active tasks</span>
+  </div>
+
+  <div class="data-table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 50px;">Rank</th>
+          <th style="width: 90px;">Task ID</th>
+          <th>Title & Details</th>
+          <th style="width: 130px;">Urgency</th>
+          <th style="width: 170px;">Deadline (UTC)</th>
+          <th style="width: 80px;">Priority</th>
+          <th style="width: 80px;">Effort</th>
+          <th style="width: 120px; text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in ranked_queue %}
+        <tr>
+          <td class="num-cell" style="font-weight: 700; color: {% if loop.index == 1 %}var(--vermilion){% else %}var(--text-muted){% endif %};">
+            #{{ loop.index }}
+          </td>
+          <td class="num-cell">{{ task.task_id }}</td>
+          <td>
+            <div style="font-weight: 600; color: var(--text-ink);">{{ task.title }}</div>
+            {% if task.notes %}
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">{{ task.notes }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="tag {% if task.urgency_category() == 'overdue' %}tag-overdue{% elif task.urgency_category() == 'due_soon' %}tag-due-soon{% else %}tag-upcoming{% endif %}">
+              {{ task.time_remaining_str() }}
+            </span>
+          </td>
+          <td class="num-cell" style="color: var(--text-muted);">
+            {{ task.deadline.strftime('%Y-%m-%d %H:%M') }}
+          </td>
+          <td>
+            <span class="tag tag-prio-{{ task.priority }}">
+              {{ task.priority_label }}
+            </span>
+          </td>
+          <td class="num-cell">{{ task.estimated_minutes }}m</td>
+          <td style="text-align: right;">
+            <div style="display: inline-flex; gap: 6px;">
+              <form action="/tasks/{{ task.task_id }}/complete" method="POST" style="margin: 0;">
+                <button type="submit" class="btn btn-sm" title="Mark completed">&check;</button>
+              </form>
+              <a href="/tasks/{{ task.task_id }}/edit" class="btn btn-sm" title="Edit">Edit</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+

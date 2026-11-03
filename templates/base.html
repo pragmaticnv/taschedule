@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}TICKLINE{% endblock %} — Task Scheduler with Deadlines</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Slim Navigation Rail -->
+    <nav class="nav-rail">
+      <div class="brand-block">
+        <div class="brand-title">
+          <span class="brand-vermilion-mark"></span>
+          TICKLINE
+        </div>
+        <div class="brand-subtitle">Project 17 &bull; Min-Heap Queue</div>
+      </div>
+
+      <ul class="nav-links">
+        <li class="nav-item {% if active_page == 'queue' %}active{% endif %}">
+          <a href="/queue">
+            <span>Workbench / Queue</span>
+            {% if active_count is defined and active_count > 0 %}
+              <span class="nav-badge">{{ active_count }}</span>
+            {% endif %}
+          </a>
+        </li>
+        <li class="nav-item {% if active_page == 'all' %}active{% endif %}">
+          <a href="/all">
+            <span>All Tasks</span>
+            {% if total_count is defined and total_count > 0 %}
+              <span class="nav-badge">{{ total_count }}</span>
+            {% endif %}
+          </a>
+        </li>
+        <li class="nav-item {% if active_page == 'new' %}active{% endif %}">
+          <a href="/tasks/new">
+            <span>+ Quick Capture</span>
+          </a>
+        </li>
+        <li class="nav-item {% if active_page == 'heap_lab' %}active{% endif %}">
+          <a href="/heap-lab">
+            <span>Heap Laboratory</span>
+            <span class="nav-badge" style="background: #C84C36; color: #FFF;">Lab</span>
+          </a>
+        </li>
+        <li class="nav-item {% if active_page == 'completed' %}active{% endif %}">
+          <a href="/completed">
+            <span>Completed</span>
+            {% if completed_count is defined and completed_count > 0 %}
+              <span class="nav-badge">{{ completed_count }}</span>
+            {% endif %}
+          </a>
+        </li>
+        <li class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+          <a href="/settings">
+            <span>Settings & Demo</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="nav-footer">
+        <div>ADSA Course Project</div>
+        <div style="margin-top: 4px; color: #535652;">Heap Invariant: O(log n)</div>
+      </div>
+    </nav>
+
+    <!-- Main Canvas -->
+    <main class="main-canvas">
+      <!-- Top Diagnostic Strip -->
+      <header class="top-strip">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div class="policy-pill">
+            <span class="policy-indicator"></span>
+            Policy: {{ current_policy_name | default("Earliest Deadline First (EDF)") }}
+          </div>
+          <span style="color: var(--text-faint);">&bull;</span>
+          <span class="strip-meta">Timezone: UTC (Deterministic)</span>
+        </div>
+
+        <div class="strip-meta">
+          <span>Active In Heap: <strong>{{ active_count | default(0) }}</strong></span>
+          <span>&bull;</span>
+          <span>Invariant: <strong style="color: #2D6A4F;">Verified</strong></span>
+          <span>&bull;</span>
+          <span id="live-clock">{{ now.strftime('%b %d, %Y %H:%M UTC') if now else '' }}</span>
+        </div>
+      </header>
+
+      <!-- View Container -->
+      <div class="page-container">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+

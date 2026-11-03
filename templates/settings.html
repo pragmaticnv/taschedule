@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Settings &amp; Demonstration — TICKLINE{% endblock %}
+
+{% block content %}
+
+<div class="view-header">
+  <div>
+    <h1 class="view-title">Settings &amp; Demonstration Workbench</h1>
+    <p class="view-desc">Configure scheduling policies, capacity thresholds, or reset to deterministic coursework demo data.</p>
+  </div>
+  <div>
+    <a href="/queue" class="btn">&larr; Return to Workbench</a>
+  </div>
+</div>
+
+{% if saved %}
+<div class="receipt-banner" style="margin-bottom: 12px;">
+  <div class="receipt-title">
+    <span>&check; Settings updated successfully. Min-heap rebuilt with active policy.</span>
+  </div>
+</div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: 3fr 2fr; gap: 24px;">
+  <!-- Policy & Parameter Settings Form -->
+  <section class="instrument-card">
+    <div class="card-label">
+      <span>Priority Queue Comparator Policy</span>
+      <span>Deterministic Ordering Rule</span>
+    </div>
+
+    <form method="POST" action="/settings">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label class="form-label">Active Ordering Policy</label>
+          <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 10px;">
+            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 10px; border: 1px solid var(--border-rule); background: {% if current_policy == 'earliest_deadline' %}#FAF8F4{% else %}#FFFFFF{% endif %};">
+              <input type="radio" name="ordering_policy" value="earliest_deadline" {% if current_policy == 'earliest_deadline' %}checked{% endif %} style="margin-top: 3px;">
+              <div>
+                <strong style="font-family: var(--font-mono); font-size: 12px; color: var(--text-ink);">Earliest Deadline First (EDF) &mdash; [Default / Assessed]</strong>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                  Orders tasks strictly by upcoming deadline date &amp; time. Equal deadlines are resolved by priority descending (-priority), then creation timestamp (FIFO), then stable task ID.
+                </p>
+              </div>
+            </label>
+
+            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 10px; border: 1px solid var(--border-rule); background: {% if current_policy == 'priority_first' %}#FAF8F4{% else %}#FFFFFF{% endif %};">
+              <input type="radio" name="ordering_policy" value="priority_first" {% if current_policy == 'priority_first' %}checked{% endif %} style="margin-top: 3px;">
+              <div>
+                <strong style="font-family: var(--font-mono); font-size: 12px; color: var(--text-ink);">Priority First (Critical Hierarchy)</strong>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                  Orders tasks by priority level (P5 Critical to P1 Low). Tasks with identical priority are then resolved by earliest deadline, creation timestamp, and stable ID.
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 8px;">
+          <label class="form-label">Available Work Window (Minutes)</label>
+          <input type="number" name="work_window_minutes" class="form-input" min="30" step="15" value="{{ work_window_minutes }}" style="max-width: 200px;">
+          <div class="form-help">
+            Used by the Capacity Warning engine to flag when total active task effort exceeds available focus time.
+          </div>
+        </div>
+
+        <div style="margin-top: 10px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+          <button type="submit" class="btn btn-primary">Save Configuration &amp; Rebuild Heap</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- Demonstration Controls & Reset -->
+  <section class="instrument-card">
+    <div class="card-label">
+      <span>Viva Demonstration Utilities</span>
+      <span>Coursework Assessment</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 18px;">
+      <div>
+        <h4 style="font-family: var(--font-serif); font-size: 16px; color: var(--text-ink);">Seed Academic Demo Dataset</h4>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+          Populates 7 deterministic tasks: Overdue OS Lab, imminent ADSA assignment, Networks report, Viva prep, and completed milestones.
+        </p>
+        <form action="/demo/seed" method="POST" style="margin-top: 10px;">
+          <button type="submit" class="btn btn-vermilion" style="width: 100%;">
+            Seed Academic Dataset (Reset State)
+          </button>
+        </form>
+      </div>
+
+      <div style="padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+        <h4 style="font-family: var(--font-serif); font-size: 16px; color: var(--text-ink);">Clear All Tasks</h4>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+          Removes all tasks from SQLite and resets the binary min-heap buffer to 0 elements.
+        </p>
+        <form action="/demo/reset" method="POST" style="margin-top: 10px;" onsubmit="return confirm('Clear all tasks and reset database?');">
+          <button type="submit" class="btn btn-danger" style="width: 100%;">
+            Clear Database (Empty Heap)
+          </button>
+        </form>
+      </div>
+
+      <div style="padding-top: 16px; border-top: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+        <div>Database Engine: SQLite3</div>
+        <div>Path: <code>data/tickline.db</code></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+{% endblock %}
+

@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TICKLINE — Anti-Procrastination Heap Scheduler</title>
+  <link rel="stylesheet" href="/static/glass.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+  <div class="app-wrapper">
+
+    <!-- FLOATING GLASS DOCK (Top-Center) -->
+    <header class="floating-dock-container">
+      <nav class="floating-dock">
+        <a href="#workbench" class="dock-brand" onclick="switchTab('workbench')">
+          <span class="brand-glow-dot"></span>
+          <span>TICKLINE</span>
+        </a>
+
+        <div class="dock-nav-items">
+          <button class="dock-btn active" id="tab-btn-workbench" onclick="switchTab('workbench')">
+            <span>⚡</span> Workbench
+          </button>
+          <button class="dock-btn" id="tab-btn-heap" onclick="switchTab('heap')">
+            <span>🧬</span> Heap Lab
+          </button>
+          <button class="dock-btn" id="tab-btn-settings" onclick="switchTab('settings')">
+            <span>⚙️</span> Config &amp; Demo
+          </button>
+        </div>
+
+        <button class="dock-action-btn" onclick="openScheduleModal()">
+          <span>+</span> Schedule
+        </button>
+      </nav>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="main-content">
+
+      <!-- SUB-BAR (Policy Glance & Capacity Window) -->
+      <div class="sub-bar">
+        <div class="policy-badge">
+          <span>Comparator:</span>
+          <strong id="bar-policy-name" style="color: #FFF;">Earliest Deadline First (EDF)</strong>
+          <button class="policy-toggle-btn" onclick="togglePolicyQuick()">[Switch]</button>
+        </div>
+
+        <div class="capacity-indicator">
+          <span>Focus Load:</span>
+          <span id="capacity-chip-el" class="capacity-chip ok">Checking...</span>
+        </div>
+      </div>
+
+      <!-- ================= TAB 1: WORKBENCH (ONE PAGE ADD & LIST) ================= -->
+      <div id="view-workbench">
+
+        <!-- HERO NEXT UP SPOTLIGHT CARD -->
+        <section class="hero-next-card" id="hero-card">
+          <div class="hero-header-row">
+            <div class="hero-badge-row">
+              <span class="badge-locked-in">
+                <span>🔥</span> Locked In &bull; Heap Root A[0]
+              </span>
+              <span class="meta-chip" id="hero-prio-chip">P5 Critical</span>
+              <span class="meta-chip" id="hero-effort-chip">45m</span>
+            </div>
+
+            <div class="hero-countdown" id="hero-countdown-box">
+              <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Timer:</span>
+              <span id="hero-timer-val">--:--:--</span>
+            </div>
+          </div>
+
+          <h1 class="hero-title" id="hero-task-title">Loading next task...</h1>
+          <p class="hero-notes" id="hero-task-notes">Please wait while the binary min-heap synchronizes.</p>
+
+          <div class="hero-meta-row">
+            <span class="meta-chip" id="hero-deadline-chip">Deadline: --</span>
+            <span class="meta-chip" id="hero-id-chip">ID: --</span>
+            <button class="hero-complete-btn" onclick="completeHeroTask()">
+              <span>&check;</span> Complete Task &amp; Pop Next
+            </button>
+          </div>
+
+          <!-- Why This Task First? Decoder Card -->
+          <div class="why-proof-box" id="hero-why-box">
+            <div class="why-proof-title">
+              <span>⚡</span> Why is this task next up? (Algorithmic Proof)
+            </div>
+            <div class="why-proof-text" id="hero-why-text">
+              Resolving heap comparator...
+            </div>
+            <div id="hero-why-criteria"></div>
+          </div>
+        </section>
+
+        <!-- TASKS LIST SECTION (Single Page Task List) -->
+        <section class="glass-panel">
+          <div class="tasks-section-header">
+            <div class="section-heading">
+              <span>📋 Task Queue &amp; Backlog</span>
+              <span class="section-counter" id="active-task-counter">0 active</span>
+            </div>
+
+            <div class="filter-pill-strip">
+              <input type="text" id="task-search-input" class="search-input-glass" placeholder="🔍 Search tasks..." oninput="filterTasks()">
+              <button class="filter-chip active" id="filter-all" onclick="setTaskFilter('all')">All</button>
+              <button class="filter-chip" id="filter-critical" onclick="setTaskFilter('critical')">🔥 Critical</button>
+              <button class="filter-chip" id="filter-overdue" onclick="setTaskFilter('overdue')">⏳ Overdue</button>
+              <button class="filter-chip" id="filter-completed" onclick="setTaskFilter('completed')">✅ Completed</button>
+            </div>
+          </div>
+
+          <!-- The List Container -->
+          <div class="tasks-list" id="tasks-list-container">
+            <!-- Dynamically populated -->
+          </div>
+        </section>
+      </div>
+
+      <!-- ================= TAB 2: HEAP LABORATORY ================= -->
+      <div id="view-heap" style="display: none;">
+        <div class="glass-panel" style="margin-bottom: 24px;">
+          <div class="tasks-section-header">
+            <div>
+              <h2 style="font-size: 24px; font-weight: 800;">🧬 Binary Min-Heap Visualizer</h2>
+              <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                Complete tree hierarchy and memory array buffer. Every node strictly maintains <code>Key(Parent) &le; Key(Child)</code>.
+              </p>
+            </div>
+            <div id="heap-invariant-badge" class="capacity-chip ok">
+              Invariant: SATISFIED
+            </div>
+          </div>
+
+          <!-- Interactive Tree Graph -->
+          <div class="heap-tree-container" id="tree-visualizer-container">
+            <!-- Tree levels dynamically generated -->
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <!-- Array Buffer Inspector -->
+          <div class="glass-panel">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--accent-cyan);">
+              Sequential Array: A[0 .. n-1]
+            </h3>
+            <div id="array-buffer-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <!-- Array slots -->
+            </div>
+          </div>
+
+          <!-- Operational Trace Log -->
+          <div class="glass-panel">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--accent-pink);">
+              Live Operation Trace Feed
+            </h3>
+            <div id="trace-log-container" style="max-height: 240px; overflow-y: auto; font-family: var(--font-mono); font-size: 11px; display: flex; flex-direction: column; gap: 6px;">
+              <!-- Trace lines -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 3: SETTINGS & DEMO ================= -->
+      <div id="view-settings" style="display: none;">
+        <div class="glass-panel" style="max-width: 680px; margin: 0 auto;">
+          <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 8px;">⚙️ Scheduler Configuration</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">
+            Adjust scheduling parameters or reset to deterministic coursework demo data for viva examination.
+          </p>
+
+          <div class="form-stack">
+            <div>
+              <label class="form-label-glass">Active Ordering Policy</label>
+              <div style="display: flex; gap: 12px; margin-top: 8px;">
+                <button type="button" class="preset-chip active" id="btn-policy-edf" onclick="setPolicy('earliest_deadline')">
+                  ⏱️ Earliest Deadline First (EDF)
+                </button>
+                <button type="button" class="preset-chip" id="btn-policy-prio" onclick="setPolicy('priority_first')">
+                  🔥 Priority First (Hierarchy)
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label-glass">Daily Work Focus Window (Minutes)</label>
+              <input type="number" id="setting-work-window" class="form-input-glass" value="180" min="30" step="15" onchange="saveWorkWindow()">
+              <p style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
+                Used by the capacity engine to trigger overload warnings.
+              </p>
+            </div>
+
+            <div style="padding-top: 18px; border-top: 1px solid var(--glass-border); display: flex; gap: 12px;">
+              <button class="hero-complete-btn" style="background: linear-gradient(135deg, #6366F1, #EC4899);" onclick="seedDemoTasks()">
+                ↺ Seed Academic Demo Tasks
+              </button>
+              <button class="preset-chip" style="color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.4);" onclick="resetAllTasks()">
+                Clear All Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- POPOUT MODAL DRAWER (To Schedule & Add Tasks) -->
+    <div class="modal-overlay" id="schedule-modal" onclick="closeModalOnOverlay(event)">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title">⚡ Schedule New Mission</div>
+          <button class="modal-close-btn" onclick="closeScheduleModal()">&times;</button>
+        </div>
+
+        <form id="new-task-form" onsubmit="handleCreateTask(event)">
+          <div class="form-stack">
+            <!-- Title -->
+            <div>
+              <label class="form-label-glass">Mission Title *</label>
+              <input type="text" id="task-title-input" class="form-input-glass" required placeholder="e.g. Implement Floyd's Bottom-Up Heapify" autofocus>
+            </div>
+
+            <!-- Quick Deadline Presets -->
+            <div>
+              <label class="form-label-glass">Deadline Presets</label>
+              <div class="quick-preset-row">
+                <button type="button" class="preset-chip" onclick="applyDeadlinePreset('2h')">+2 Hours Rush</button>
+                <button type="button" class="preset-chip" onclick="applyDeadlinePreset('tonight')">Tonight (11:59 PM)</button>
+                <button type="button" class="preset-chip" onclick="applyDeadlinePreset('tomorrow')">Tomorrow 5 PM</button>
+                <button type="button" class="preset-chip" onclick="applyDeadlinePreset('friday')">Friday 11:59 PM</button>
+              </div>
+              <input type="datetime-local" id="task-deadline-input" class="form-input-glass" required>
+            </div>
+
+            <!-- Priority Selector -->
+            <div>
+              <label class="form-label-glass">Priority Level</label>
+              <div class="priority-selector-grid">
+                <button type="button" class="priority-option-btn prio-5" onclick="selectPriority(5)">🔥 P5 Crit</button>
+                <button type="button" class="priority-option-btn prio-4" onclick="selectPriority(4)">⚡ P4 High</button>
+                <button type="button" class="priority-option-btn prio-3 selected" onclick="selectPriority(3)">🎯 P3 Med</button>
+                <button type="button" class="priority-option-btn prio-2" onclick="selectPriority(2)">🌱 P2 Low</button>
+                <button type="button" class="priority-option-btn prio-1" onclick="selectPriority(1)">☕ P1 Backlog</button>
+              </div>
+              <input type="hidden" id="task-priority-input" value="3">
+            </div>
+
+            <!-- Duration Selector -->
+            <div>
+              <label class="form-label-glass">Estimated Effort (Minutes)</label>
+              <div class="duration-selector-row">
+                <button type="button" class="duration-chip" onclick="selectDuration(15)">15m</button>
+                <button type="button" class="duration-chip" onclick="selectDuration(30)">30m</button>
+                <button type="button" class="duration-chip selected" onclick="selectDuration(45)">45m</button>
+                <button type="button" class="duration-chip" onclick="selectDuration(60)">60m</button>
+                <button type="button" class="duration-chip" onclick="selectDuration(90)">90m</button>
+                <button type="button" class="duration-chip" onclick="selectDuration(120)">120m</button>
+              </div>
+              <input type="hidden" id="task-duration-input" value="45">
+            </div>
+
+            <!-- Notes -->
+            <div>
+              <label class="form-label-glass">Notes &amp; Scope (Optional)</label>
+              <textarea id="task-notes-input" class="form-textarea-glass" rows="2" placeholder="Details, edge cases, grading criteria..."></textarea>
+            </div>
+
+            <button type="submit" class="modal-submit-btn">
+              Lock Into Heap Queue &rarr;
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Live Toast Message -->
+    <div id="toast" class="toast-msg">
+      <span id="toast-icon">✓</span>
+      <span id="toast-text">Task completed!</span>
+    </div>
+
+  </div>
+
+  <!-- CLIENT-SIDE APPLICATION LOGIC -->
+  <script>
+    let appState = null;
+    let countdownInterval = null;
+    let currentFilter = 'all';
+
+    // Fetch full system state
+    async function refreshState() {
+      try {
+        const res = await fetch('/api/state');
+        if (!res.ok) return;
+        appState = await res.json();
+        renderAll();
+      } catch (e) {
+        console.error('Error fetching state:', e);
+      }
+    }
+
+    function renderAll() {
+      if (!appState) return;
+
+      // Render Sub-bar
+      document.getElementById('bar-policy-name').textContent = appState.policy_name;
+      const capChip = document.getElementById('capacity-chip-el');
+      if (appState.capacity.has_overload) {
+        capChip.className = 'capacity-chip warning';
+        capChip.textContent = `⚠️ Overloaded by ${appState.capacity.deficit_minutes}m (${appState.capacity.total_estimated_minutes}m / ${appState.capacity.work_window_minutes}m)`;
+      } else {
+        capChip.className = 'capacity-chip ok';
+        capChip.textContent = `✓ ${appState.capacity.total_estimated_minutes}m / ${appState.capacity.work_window_minutes}m Window`;
+      }
+
+      // Render Hero Next Up Task
+      renderHero(appState.next_task, appState.explanation);
+
+      // Render Tasks List
+      renderTasksList();
+
+      // Render Heap Laboratory
+      renderHeapLab(appState.heap);
+
+      // Render Settings tab
+      if (appState.policy === 'earliest_deadline') {
+        document.getElementById('btn-policy-edf').classList.add('active');
+        document.getElementById('btn-policy-prio').classList.remove('active');
+      } else {
+        document.getElementById('btn-policy-edf').classList.remove('active');
+        document.getElementById('btn-policy-prio').classList.add('active');
+      }
+      document.getElementById('setting-work-window').value = appState.capacity.work_window_minutes;
+    }
+
+    function renderHero(nextTask, explanation) {
+      if (!nextTask) {
+        document.getElementById('hero-task-title').textContent = "Queue is Empty! 🎉";
+        document.getElementById('hero-task-notes').textContent = "No active tasks in the binary min-heap. Click + Schedule to add one or reset demo tasks.";
+        document.getElementById('hero-countdown-box').style.display = "none";
+        document.getElementById('hero-prio-chip').style.display = "none";
+        document.getElementById('hero-effort-chip').style.display = "none";
+        document.getElementById('hero-deadline-chip').style.display = "none";
+        document.getElementById('hero-id-chip').style.display = "none";
+        document.getElementById('hero-why-box').style.display = "none";
+        return;
+      }
+
+      document.getElementById('hero-countdown-box').style.display = "inline-flex";
+      document.getElementById('hero-prio-chip').style.display = "inline-flex";
+      document.getElementById('hero-effort-chip').style.display = "inline-flex";
+      document.getElementById('hero-deadline-chip').style.display = "inline-flex";
+      document.getElementById('hero-id-chip').style.display = "inline-flex";
+      document.getElementById('hero-why-box').style.display = "block";
+
+      document.getElementById('hero-task-title').textContent = nextTask.title;
+      document.getElementById('hero-task-notes').textContent = nextTask.notes || "No extra notes. Focus on this milestone.";
+      
+      const prioChip = document.getElementById('hero-prio-chip');
+      prioChip.textContent = `P${nextTask.priority} ${nextTask.priority === 5 ? 'Critical' : nextTask.priority === 4 ? 'High' : 'Normal'}`;
+      prioChip.className = `meta-chip prio-${nextTask.priority}`;
+
+      document.getElementById('hero-effort-chip').textContent = `${nextTask.estimated_minutes} min`;
+      document.getElementById('hero-id-chip').textContent = `ID: ${nextTask.task_id}`;
+
+      const dl = new Date(nextTask.deadline);
+      document.getElementById('hero-deadline-chip').textContent = `Due: ${dl.toLocaleDateString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}`;
+
+      // Live Countdown Timer
+      startCountdown(dl);
+
+      // Why This Task Proof
+      if (explanation && explanation.has_task) {
+        document.getElementById('hero-why-text').textContent = explanation.primary_reason;
+        const critBox = document.getElementById('hero-why-criteria');
+        critBox.innerHTML = '';
+        if (explanation.criteria) {
+          explanation.criteria.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'why-proof-criterion';
+            div.innerHTML = `<span style="color: var(--accent-pink); font-weight: 700;">&bull; ${c.status}:</span> <span>${c.rule} &mdash; ${c.details}</span>`;
+            critBox.appendChild(div);
+          });
+        }
+      }
+    }
+
+    function startCountdown(deadlineDate) {
+      if (countdownInterval) clearInterval(countdownInterval);
+      const timerEl = document.getElementById('hero-timer-val');
+
+      function update() {
+        const now = new Date();
+        const diffMs = deadlineDate - now;
+        const isPast = diffMs < 0;
+        const totalSecs = Math.floor(Math.abs(diffMs) / 1000);
+
+        const hours = Math.floor(totalSecs / 3600);
+        const mins = Math.floor((totalSecs % 3600) / 60);
+        const secs = totalSecs % 60;
+
+        const pad = (n) => String(n).padStart(2, '0');
+        const str = `${pad(hours)}h : ${pad(mins)}m : ${pad(secs)}s`;
+
+        if (isPast) {
+          timerEl.innerHTML = `<span style="color: var(--accent-rose);">${str} OVERDUE</span>`;
+        } else {
+          timerEl.innerHTML = str;
+        }
+      }
+
+      update();
+      countdownInterval = setInterval(update, 1000);
+    }
+
+    function renderTasksList() {
+      const container = document.getElementById('tasks-list-container');
+      container.innerHTML = '';
+
+      let list = appState.ranked_queue;
+      if (currentFilter === 'completed') {
+        list = appState.completed_tasks;
+      }
+
+      const q = document.getElementById('task-search-input').value.toLowerCase().trim();
+      const filtered = list.filter(t => {
+        if (q && !t.title.toLowerCase().includes(q) && !t.task_id.toLowerCase().includes(q) && !(t.notes || '').toLowerCase().includes(q)) {
+          return false;
+        }
+        if (currentFilter === 'critical' && t.priority < 4) return false;
+        if (currentFilter === 'overdue' && new Date(t.deadline) > new Date()) return false;
+        return true;
+      });
+
+      document.getElementById('active-task-counter').textContent = `${appState.ranked_queue.length} active`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-dim);">No tasks found for current filter.</div>`;
+        return;
+      }
+
+      filtered.forEach((task, idx) => {
+        const isCompleted = task.status === 'completed';
+        const card = document.createElement('div');
+        card.className = 'task-item-card';
+
+        const dl = new Date(task.deadline);
+        const now = new Date();
+        const isOverdue = dl < now && !isCompleted;
+
+        card.innerHTML = `
+          <div class="task-item-left">
+            <div class="rank-badge">${isCompleted ? '✓' : '#' + (idx + 1)}</div>
+            <div class="custom-checkbox ${isCompleted ? 'completed' : ''}" onclick="toggleTaskStatus('${task.task_id}', ${isCompleted})">
+              ${isCompleted ? '✓' : ''}
+            </div>
+            <div class="task-info-block">
+              <div class="task-item-title ${isCompleted ? 'completed' : ''}">${task.title}</div>
+              <div class="task-item-notes">${task.notes || 'No description'} &bull; ${task.task_id}</div>
+            </div>
+          </div>
+
+          <div class="task-item-right">
+            <span class="prio-pill prio-${task.priority}">P${task.priority}</span>
+            <span class="urgency-pill ${isOverdue ? 'urgency-overdue' : 'urgency-upcoming'}">
+              ${dl.toLocaleDateString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}
+            </span>
+            <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);">${task.estimated_minutes}m</span>
+            <button class="item-action-btn delete" title="Delete" onclick="deleteTask('${task.task_id}')">&times;</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderHeapLab(heap) {
+      if (!heap) return;
+      document.getElementById('heap-invariant-badge').textContent = heap.invariant_valid ? "Invariant: SATISFIED (O(log n))" : "Invariant: VIOLATED";
+      document.getElementById('heap-invariant-badge').className = heap.invariant_valid ? "capacity-chip ok" : "capacity-chip warning";
+
+      // Render Tree Hierarchy
+      const treeContainer = document.getElementById('tree-visualizer-container');
+      treeContainer.innerHTML = '';
+
+      const levels = {};
+      heap.nodes.forEach(node => {
+        if (!levels[node.level]) levels[node.level] = [];
+        levels[node.level].push(node);
+      });
+
+      Object.keys(levels).forEach(lvl => {
+        const row = document.createElement('div');
+        row.className = 'tree-level';
+        levels[lvl].forEach(node => {
+          const el = document.createElement('div');
+          el.className = `tree-node-glass ${node.is_root ? 'root' : ''}`;
+          el.innerHTML = `
+            <div class="node-idx-badge">[${node.index}] ${node.is_root ? '★ ROOT' : ''}</div>
+            <div class="node-title">${node.task.title}</div>
+            <div class="node-key-sub">P${node.task.priority} &bull; Par: ${node.parent_index !== null ? '['+node.parent_index+']' : 'None'}</div>
+          `;
+          row.appendChild(el);
+        });
+        treeContainer.appendChild(row);
+      });
+
+      // Render Array Buffer
+      const arrayContainer = document.getElementById('array-buffer-container');
+      arrayContainer.innerHTML = '';
+      heap.nodes.forEach(node => {
+        const slot = document.createElement('div');
+        slot.style.cssText = `padding: 6px 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: var(--font-mono); font-size: 11px;`;
+        slot.innerHTML = `<span style="color: var(--accent-pink); font-weight: 700;">[${node.index}]</span> <span style="color: #FFF;">${node.task.task_id}</span>`;
+        arrayContainer.appendChild(slot);
+      });
+
+      // Render Trace Log
+      const traceContainer = document.getElementById('trace-log-container');
+      traceContainer.innerHTML = '';
+      heap.trace_log.forEach(ev => {
+        const line = document.createElement('div');
+        line.style.cssText = `padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);`;
+        line.innerHTML = `<span style="color: var(--text-dim);">${ev.timestamp}</span> <strong style="color: var(--accent-cyan);">[${ev.operation}]</strong> ${ev.explanation}`;
+        traceContainer.appendChild(line);
+      });
+    }
+
+    // Tab Switching
+    function switchTab(tabId) {
+      document.getElementById('view-workbench').style.display = (tabId === 'workbench') ? 'block' : 'none';
+      document.getElementById('view-heap').style.display = (tabId === 'heap') ? 'block' : 'none';
+      document.getElementById('view-settings').style.display = (tabId === 'settings') ? 'block' : 'none';
+
+      document.getElementById('tab-btn-workbench').classList.toggle('active', tabId === 'workbench');
+      document.getElementById('tab-btn-heap').classList.toggle('active', tabId === 'heap');
+      document.getElementById('tab-btn-settings').classList.toggle('active', tabId === 'settings');
+    }
+
+    // Popout Modal Controls
+    function openScheduleModal() {
+      // Set default deadline to tomorrow 5 PM
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(17, 0, 0, 0);
+      document.getElementById('task-deadline-input').value = tomorrow.toISOString().slice(0, 16);
+
+      document.getElementById('schedule-modal').classList.add('active');
+    }
+
+    function closeScheduleModal() {
+      document.getElementById('schedule-modal').classList.remove('active');
+    }
+
+    function closeModalOnOverlay(e) {
+      if (e.target.id === 'schedule-modal') closeScheduleModal();
+    }
+
+    // Modal Presets
+    function applyDeadlinePreset(type) {
+      const dt = new Date();
+      if (type === '2h') {
+        dt.setHours(dt.getHours() + 2);
+      } else if (type === 'tonight') {
+        dt.setHours(23, 59, 0, 0);
+      } else if (type === 'tomorrow') {
+        dt.setDate(dt.getDate() + 1);
+        dt.setHours(17, 0, 0, 0);
+      } else if (type === 'friday') {
+        const day = dt.getDay();
+        const diff = (5 - day + 7) % 7 || 7;
+        dt.setDate(dt.getDate() + diff);
+        dt.setHours(23, 59, 0, 0);
+      }
+      document.getElementById('task-deadline-input').value = dt.toISOString().slice(0, 16);
+    }
+
+    function selectPriority(lvl) {
+      document.getElementById('task-priority-input').value = lvl;
+      document.querySelectorAll('.priority-option-btn').forEach((b, i) => {
+        b.classList.toggle('selected', (5 - i) === lvl);
+      });
+    }
+
+    function selectDuration(mins) {
+      document.getElementById('task-duration-input').value = mins;
+      document.querySelectorAll('.duration-chip').forEach(c => {
+        c.classList.toggle('selected', parseInt(c.textContent) === mins);
+      });
+    }
+
+    // Async Actions
+    async function handleCreateTask(e) {
+      e.preventDefault();
+      const title = document.getElementById('task-title-input').value.trim();
+      const deadline = document.getElementById('task-deadline-input').value;
+      const priority = parseInt(document.getElementById('task-priority-input').value);
+      const estimated_minutes = parseInt(document.getElementById('task-duration-input').value);
+      const notes = document.getElementById('task-notes-input').value.trim();
+
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ title, deadline, priority, estimated_minutes, notes })
+      });
+
+      if (res.ok) {
+        closeScheduleModal();
+        document.getElementById('new-task-form').reset();
+        showToast('Mission locked into heap in O(log n)! 🚀');
+        await refreshState();
+      }
+    }
+
+    async function completeHeroTask() {
+      const res = await fetch('/api/tasks/complete-next', { method: 'POST' });
+      if (res.ok) {
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
+        showToast('Completed top task! Popped root in O(log n) ✨');
+        await refreshState();
+      }
+    }
+
+    async function toggleTaskStatus(taskId, isCompleted) {
+      const endpoint = isCompleted ? `/api/tasks/${taskId}/reopen` : `/api/tasks/${taskId}/complete`;
+      const res = await fetch(endpoint, { method: 'POST' });
+      if (res.ok) {
+        if (!isCompleted) confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
+        showToast(isCompleted ? 'Task reopened!' : 'Task finished!');
+        await refreshState();
+      }
+    }
+
+    async function deleteTask(taskId) {
+      if (!confirm(`Delete ${taskId}?`)) return;
+      const res = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Deleted task.');
+        await refreshState();
+      }
+    }
+
+    async function setPolicy(policy) {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ ordering_policy: policy })
+      });
+      showToast(`Policy set to ${policy}. Heap rebuilt!`);
+      await refreshState();
+    }
+
+    async function togglePolicyQuick() {
+      const nextP = appState.policy === 'earliest_deadline' ? 'priority_first' : 'earliest_deadline';
+      await setPolicy(nextP);
+    }
+
+    async function saveWorkWindow() {
+      const mins = document.getElementById('setting-work-window').value;
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ work_window_minutes: parseInt(mins) })
+      });
+      showToast('Work window saved.');
+      await refreshState();
+    }
+
+    async function seedDemoTasks() {
+      await fetch('/api/demo/seed', { method: 'POST' });
+      showToast('Academic demo tasks seeded!');
+      await refreshState();
+    }
+
+    async function resetAllTasks() {
+      if (!confirm('Clear all tasks?')) return;
+      await fetch('/api/demo/reset', { method: 'POST' });
+      showToast('All tasks cleared.');
+      await refreshState();
+    }
+
+    function setTaskFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      const activeBtn = document.getElementById(`filter-${filter}`);
+      if (activeBtn) activeBtn.classList.add('active');
+      renderTasksList();
+    }
+
+    function filterTasks() {
+      renderTasksList();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-text').textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // Keyboard Shortcuts (Esc to close modal, Ctrl+Enter to submit)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeScheduleModal();
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        const modal = document.getElementById('schedule-modal');
+        if (modal.classList.contains('active')) {
+          document.getElementById('new-task-form').requestSubmit();
+        }
+      }
+    });
+
+    // Boot
+    refreshState();
+  </script>
+</body>
+</html>
+

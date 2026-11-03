@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}Edit {{ task.task_id }}{% else %}Quick Capture Task{% endif %} — TICKLINE{% endblock %}
+
+{% block content %}
+
+<div class="view-header">
+  <div>
+    <h1 class="view-title">{% if is_edit %}Edit Task [{{ task.task_id }}]{% else %}Quick Capture Task{% endif %}</h1>
+    <p class="view-desc">{% if is_edit %}Modify deadline, effort or priority. The binary min-heap will automatically rebuild in O(n).{% else %}Add a new task to the repository and sift into the active binary min-heap in O(log n).{% endif %}</p>
+  </div>
+  <div>
+    <a href="/queue" class="btn">&larr; Back to Queue</a>
+  </div>
+</div>
+
+{% if error %}
+<div class="capacity-banner danger" style="margin-bottom: 8px;">
+  <div class="capacity-title">
+    <span>&excl; Validation Error:</span> {{ error }}
+  </div>
+</div>
+{% endif %}
+
+<div class="instrument-card" style="max-width: 760px;">
+  <form method="POST" action="{% if is_edit %}/tasks/{{ task.task_id }}/edit{% else %}/tasks/new{% endif %}">
+    <div class="form-grid">
+      
+      {% if is_edit %}
+      <div class="form-group form-full">
+        <label class="form-label">Task Identifier (Immutable Primary Key)</label>
+        <input type="text" class="form-input" value="{{ task.task_id }}" disabled style="background: var(--bg-subtle);">
+      </div>
+      {% else %}
+      <div class="form-group">
+        <label class="form-label">Custom Task ID (Optional)</label>
+        <input type="text" name="task_id" class="form-input" placeholder="e.g. TSK-108 (leave blank to auto-generate)" value="{{ prefill_id | default('') }}">
+        <div class="form-help">Leave empty for auto-generated deterministic identifier.</div>
+      </div>
+      {% endif %}
+
+      <div class="form-group form-full">
+        <label class="form-label">Task Title *</label>
+        <input type="text" name="title" class="form-input" required placeholder="e.g. Implement Heapsort and analyze comparisons" value="{% if task %}{{ task.title }}{% endif %}" autofocus>
+        <div class="form-help">Required concise description of the milestone or assignment.</div>
+      </div>
+
+      <div class="form-group form-full">
+        <label class="form-label">Notes &amp; Academic Scope</label>
+        <textarea name="notes" class="form-textarea" rows="3" placeholder="Optional details, test cases, or submission constraints...">{% if task %}{{ task.notes }}{% endif %}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Deadline Date &amp; Time (UTC) *</label>
+        <input type="datetime-local" name="deadline" class="form-input" required value="{{ deadline_val }}">
+        <div class="form-help">Earliest deadline receives highest priority under EDF policy.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Estimated Effort (Minutes) *</label>
+        <input type="number" name="estimated_minutes" class="form-input" min="5" step="5" required value="{% if task %}{{ task.estimated_minutes }}{% else %}45{% endif %}">
+        <div class="form-help">Used for capacity estimation and workload warnings.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Priority Level (1 to 5) *</label>
+        <select name="priority" class="form-select">
+          <option value="5" {% if task and task.priority == 5 %}selected{% endif %}>5 — Critical Urgency</option>
+          <option value="4" {% if task and task.priority == 4 %}selected{% endif %}>4 — High Priority</option>
+          <option value="3" {% if not task or task.priority == 3 %}selected{% endif %}>3 — Medium Priority (Default)</option>
+          <option value="2" {% if task and task.priority == 2 %}selected{% endif %}>2 — Minor / Normal</option>
+          <option value="1" {% if task and task.priority == 1 %}selected{% endif %}>1 — Low / Backlog</option>
+        </select>
+        <div class="form-help">Acts as deterministic tie-breaker for equal deadlines.</div>
+      </div>
+
+      {% if is_edit %}
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-select">
+          <option value="active" {% if task.status == 'active' %}selected{% endif %}>Active (In Queue)</option>
+          <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>Completed (Archived)</option>
+        </select>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 10px;">
+      <a href="/queue" class="btn">Cancel</a>
+      <button type="submit" class="btn btn-vermilion">
+        {% if is_edit %}Save Changes &amp; Rebuild Heap{% else %}Insert Into Heap Priority Queue{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
